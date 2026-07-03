@@ -24,7 +24,7 @@ Summarize what is already known. Include prior art, prior decisions, and any con
 
 ## Libraries & Stack
 
-Evaluate candidate languages, runtimes, frameworks, libraries, and services. Every candidate MUST be evaluated against this platform's actual stack and constraints (Go/TypeScript, GCP, Kubernetes, single-owner/minimal-dependency bias per constitution Principle I) — not against generic best practices alone. Every candidate's maturity/maintenance/license claims must trace to a cited source — add it to **Web Citations** below, don't assert it from memory.
+Evaluate candidate languages, runtimes, frameworks, libraries, and services. Every candidate MUST be evaluated against rebus's actual stack and constraints (Go, GCP/Firestore, GKE, single-owner/minimal-dependency bias per constitution Principle I) — not against generic best practices alone. Every candidate's maturity/maintenance/license claims must trace to a cited source — add it to **Web Citations** below, don't assert it from memory.
 
 | Candidate | Purpose | License | Maturity | Maintenance | Fit | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -58,7 +58,7 @@ Assess the current codebase (this repo, and any named reference repos already in
 
 ## Security & Compliance
 
-Review authentication, authorization, data handling, secrets management, and applicable compliance requirements. For `skipper`, this includes GCP IAM scoping, Workload Identity Federation usage, Secret Manager usage, and Kubernetes RBAC/network-policy implications.
+Review authentication, authorization, data handling, secrets management, and applicable compliance requirements. For `rebus`, this includes the SSH-key-signed-challenge auth model, the asymmetric server-side role enforcement, Firestore access scoping via the backend service account, Workload Identity (no static keys) for the GKE deployment, Secret Manager for any application secrets, and the transport+at-rest (not E2EE) confidentiality posture.
 
 - **Threat surface:**
 - **Data classification:**

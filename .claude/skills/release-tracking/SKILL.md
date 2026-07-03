@@ -8,7 +8,7 @@ argument-hint: <feature/task being implemented, or "close release X.XX">
 
 This skill has two jobs, both about keeping implementation work
 traceable: (1) gate implementation work on it actually being scoped, and
-(2) produce skipper's standardized release documentation and changelog
+(2) produce rebus's standardized release documentation and changelog
 when a release closes. It does not replace the Spec Kit workflow
 (`/speckit.specify` etc.) or the feature-development pipeline in
 `AGENTS.md` — it sits alongside them as the relevance/traceability check
@@ -61,9 +61,10 @@ When the user asks to prepare or close a release (e.g. "close release
      why (no marketing framing, per Principle I).
    - **Test evidence** — pointer to or summary of the unit/integration
      tests covering this release's capabilities.
-   - **Usage guide** — how to scaffold, configure, deploy, upgrade, and
-     maintain a project with this release, per Principle II's full
-     lifecycle.
+   - **Usage guide** — how to build, configure, deploy (via `skipper`),
+     upgrade, and maintain `rebus` at this release, plus which
+     `client`-package SemVer importers should consume (per the
+     constitution's Release Process and Principle III).
 3. **Add a changelog entry.** Copy the block from
    `specs/releases/CHANGELOG-TEMPLATE.md` into `CHANGELOG.md`, directly
    under the `# Changelog` heading (newest entry first), and fill it in:

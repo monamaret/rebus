@@ -1,17 +1,19 @@
 <!--
-Changelog entry scaffold for skipper.
+Changelog entry scaffold for rebus.
 
 Copy the block below into CHANGELOG.md (newest entry first, directly under
 the top-level # Changelog heading and any "## [Unreleased]" section) when a
 release is closed. One entry per release. Every line item MUST link back
 to the specs/features/ item that justified it — no line item without a
 traceable source. This is the standardized format the release-tracking
-skill (.claude/skills/release-tracking/SKILL.md) and skipper's own future
-release scaffolding are built to read/write.
+skill (.claude/skills/release-tracking/SKILL.md) is built to read/write.
 
 Categories: use only the ones that apply; omit empty categories entirely
 rather than leaving them with no items. Keep entries plain and
-owner-facing per constitution Principle I — no marketing framing.
+owner-facing per constitution Principle I — no marketing framing. Because
+the `client` package is a cross-repo contract (Principle III), each entry
+also states the `client`-package SemVer it ships and calls out any
+breaking change explicitly.
 -->
 
 ## [X.XX] - YYYY-MM-DD

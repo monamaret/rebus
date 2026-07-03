@@ -1,286 +1,201 @@
-# Architecture: `skipper`
+# Architecture: `rebus`
 
-**Status:** Layer shape confirmed; first release's internal design confirmed for the TUI shell/backend (002–024, plus the 025 catalog-document and 026 client-package cross-repo contracts) and for the web application layer (001, 005, 008, 017) — no open layer-shape questions remain (see [roadmap.md §0](roadmap.md#0-outstanding-design-questions)). Per-feature specs under `specs/features/` are **not yet created** (see the numbering note below and [roadmap.md](roadmap.md)).
+**Status:** `rebus`'s architecture is confirmed in research (R-006, R-013,
+R-014, R-026) and the constitution, but the Go module does not exist yet —
+no per-feature `specs/features/` items have been created or implemented.
+This document describes the backend `rebus` *is*; the platform that
+scaffolds and operates it (`skipper`) is cited as inherited context, not
+as the subject.
 
-This document holds the reference diagrams and call-flows for `skipper`,
-kept in sync with confirmed decisions in `specs/research/` and the roadmap
-in `specs/research/roadmap.md`, per the "Architecture sync" step in the
-feature development process (see `AGENTS.md` and
-`.specify/memory/constitution.md`). Update this *before* implementation
-starts for any change that affects the diagrams/call-flows below — it
-should never drift out of sync with reality.
+This document holds the reference diagrams and call-flows for `rebus`,
+kept in sync with confirmed decisions in the vendored `specs/research/`
+corpus and the roadmap in [roadmap.md](roadmap.md), per the "Architecture
+sync" step in the feature development process (see `AGENTS.md` and
+[`.specify/memory/constitution.md`](../../.specify/memory/constitution.md)).
+Update this *before* implementation starts for any change that affects the
+diagrams/call-flows below — it should never drift out of sync with reality.
+
+`rebus` (`github.com/monamaret/rebus`) is **one application backend within
+the platform that `skipper` scaffolds and operates** — specifically, the
+private 1:1 chat app's stateless RPC-over-HTTPS backend. It is **not** the
+platform tool, not a TUI shell, and not a client. The numbered research
+docs under this directory are the vendored platform corpus (see
+[README.md](README.md)); this architecture doc is `rebus`'s own, re-scoped
+from the platform-level view it inherited.
 
 ## System overview
 
-The platform `skipper` scaffolds and operates is a single developer's
-personal platform, composed of three layers with distinct deployment
-targets (see constitution Principle VIII):
+`rebus` is a stateless RPC-over-HTTPS backend in the rook/sight mold,
+backed by Cloud Firestore, publishing one public Go client package
+consumed by two separate client repos. It holds no open per-client session,
+renders no server-side TUI, and delivers messages asynchronously (clients
+pull via incremental sync — no live/real-time/push path).
 
 ```
-                    ┌────────────────────────┐
-                    │   skipper (this repo)   │
-                    │  scaffold + deploy/     │
-                    │  upgrade/maintain CLI    │
-                    └───────────┬─────────────┘
-                                │ generates / operates
-        ┌───────────────────────┼───────────────────────────┐
-        ▼                       ▼                           ▼
-┌───────────────┐     ┌─────────────────────────┐  ┌──────────────────┐
-│   Backend      │     │   Web application layer  │  │  Hybrid TUI       │
-│  custom apps + │     │   — two categories:       │  │     layer         │
-│  GCP managed   │     │                           │  │  client-side,     │
-│  services      │     │  (a) standalone content   │  │  lazy data sync   │
-│  on GKE        │     │      sites → Cloudflare    │  │  to backend on    │
-│                │     │      Workers (biblio)      │  │  certain pages    │
-│                │     │  (b) backend-application   │  │                   │
-│                │     │      UIs → Firebase        │  │                   │
-│                │     │      Hosting + Cloud Run    │  │                   │
-└───────┬────────┘     └────────────┬──────────────┘  └─────────┬─────────┘
-        │                            │                            │
-        │ own repo, scaffolded by skipper, maintained separately
-        ▼                            ▼                            ▼
-  (backend infra lives    (web app repo — biblio       (TUI client repo —
-   in/managed by this      pattern for (a), or          kingfish, pattern
-   repo directly)          Firebase Hosting/Cloud       from bbb-le; see
-                           Run for (b))                 022)
+   ┌─────────────────────────────────┐    ┌─────────────────────────────────┐
+   │  kingfish (github.com/          │    │  bateau (github.com/            │
+   │  monamaret/kingfish)            │    │  monamaret/bateau)              │
+   │                                  │    │                                  │
+   │  TUI shell + embedded           │    │  Lighter standalone client      │
+   │  OWNER chat view (FULL admin:   │    │  for the outside-domain GUEST   │
+   │  hard-delete, edit, invite)     │    │  (send / read / hide only —     │
+   │                                  │    │  NO admin operations)           │
+   └───────────────┬─────────────────┘    └────────────────┬────────────────┘
+                   │                                        │
+                   │   both import ONE public Go package:  │
+                   │      github.com/monamaret/rebus/client │
+                   │   (cross-repo contract — see R-026)    │
+                   │                                        │
+                   ▼                                        ▼
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │  rebus backend (this repo) — stateless RPC/HTTPS on GKE                    │
+   │                                                                            │
+   │   - holds NO open per-client session (rook/sight pattern, R-002)          │
+   │   - every op is  func(ctx, Input) (Output, error)  (R-011)                 │
+   │   - async-only delivery — clients pull; no live/push mode (Principle II)  │
+   │   - asymmetric roles enforced HERE at the backend, never in clients       │
+   │     (Principle VII): admin = hard-delete/edit/invite; participant = hide  │
+   │   - auth: SSH-public-key-signed challenge, IdP-free (Principle VI);       │
+   │     the private key never leaves the client                               │
+   └───────────────────────────────────┬───────────────────────────────────────┘
+                                       │  backend service account (full access);
+                                       │  clients NEVER touch Firestore directly
+                                       ▼
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │  Cloud Firestore                                                          │
+   │                                                                            │
+   │   conversations/{conversationId}            ← top-level collection        │
+   │     ├─ sender/pubkey, participant/pubkey, role[], createdAt               │
+   │     └─ messages/{messageId}                 ← subcollection               │
+   │           └─ sender, content, sentAt, updatedAt, hiddenFor                │
+   │                                                                            │
+   │   sync = messages.where("updatedAt", ">", lastSyncTime) per conversation  │
+   │   (extends sight's SyncNotes(ctx, since) — R-006)                         │
+   └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Backend** — custom applications plus supporting GCP managed services
-  (e.g. Firebase), deployed on GKE. This is the one layer whose
-  infrastructure/deployment configuration lives directly in this repo.
-- **Web application layer** — generated as its own repo per project; not
-  vendored into `skipper`. Two categories, different deployment targets
-  per [005-generic-app-scaffold.md](005-generic-app-scaffold.md):
-  standalone content sites (Cloudflare Workers, reference
-  `github.com/monamaret/biblio`) and backend-application UIs (Firebase
-  Hosting + Cloud Run, GCP-native, governed by constitution Principle V).
-- **Hybrid TUI layer** — generated as its own repo per project; not
-  vendored into `skipper`. Reference pattern: `github.com/monamaret/bbb-le`.
-  First concrete instance: **`kingfish`** (`github.com/monamaret/kingfish`,
-  not yet created — see
-  [022-tui-shell-repo-boundary.md](022-tui-shell-repo-boundary.md)).
+- **Backend (`rebus`, this repo)** — Go, stateless RPC over HTTPS. The unit
+  of its surface is the `func(ctx, Input) (Output, error)` operation
+  ([R-011](011-shared-operation-definitions-and-mcp-sdk.md)). All Firestore
+  access is backend-mediated; Firestore security rules are **not** the
+  access-control mechanism (the backend service account has full access;
+  role checks live in application logic, [R-013](013-cli-command-mapping-and-privilege-model.md)).
+- **Public client package** — exactly one, `github.com/monamaret/rebus/client`,
+  **not** under `internal/` (the Go toolchain forbids cross-repo
+  `internal/` imports; see [R-026](026-public-client-package-contract.md)).
+  It exports the `Client`, its `New(cfg Config)` constructor, the
+  request/response wire types, and the exported error sentinels. Any
+  breaking change to this surface is a SemVer-major release coordinated
+  with both importers (Principle III).
+- **Two client repos (separate from `rebus`)** — `kingfish`
+  (`github.com/monamaret/kingfish`) embeds the **owner** chat view with
+  full admin capabilities; `bateau` (`github.com/monamaret/bateau`) is the
+  **guest's** lighter standalone client, send/read/hide only. Both are
+  thin wrappers over the same `rebus/client` package; neither imports any
+  other `rebus` internal package. The clients keep a local rook-style
+  flat-file cache of synced messages per conversation ([R-006](006-private-chat-application.md)).
 
-Exact framework/library choices within each layer (web framework specifics,
-TUI stack, lazy-sync mechanism) are open research items — see
-[roadmap.md §0](roadmap.md#0-outstanding-design-questions) — not yet
-confirmed decisions.
+## Data model
 
-## First major release — TUI shell, catalog, and app call flows
+Cloud Firestore, `conversations/{conversationId}/messages/{messageId}`
+subcollections ([R-006](006-private-chat-application.md), Principle IV).
+Firebase's own documentation names this exact parent/child shape as the
+standard pattern for a chat application (see R-006's Web Citations).
 
-Confirmed shape for [roadmap.md §1](roadmap.md#1-first-major-release),
-from [002-hybrid-tui-layer.md](002-hybrid-tui-layer.md) and
-[003-backend-application-deployment.md](003-backend-application-deployment.md).
+- **Conversation document** (`conversations/{conversationId}`) — holds the
+  two participant identities keyed by their registered public key, an
+  explicit per-participant `role` field ([R-013](013-cli-command-mapping-and-privilege-model.md),
+  Principle VII — not "creator = admin"), and `createdAt`.
+- **Message document** (`messages/{messageId}`) — `sender`, `content`
+  (plaintext, backend-readable per Principle V), `sentAt`, `updatedAt`
+  (distinct from `sentAt`, so an admin edit is distinguishable from a new
+  message in sync queries), and `hiddenFor` (the per-participant
+  soft-hide a participant sets on their own view — never removes the
+  document; the admin's hard-delete instead physically removes it).
 
-**Numbering note:** the `(001)`–`(006)` labels in the diagrams/prose below
-are shorthand for [roadmap.md §1](roadmap.md#1-first-major-release)'s
-dependency-ordered first-release feature list, not citations to existing
-files — the corresponding `specs/features/NNN-*.md` files haven't been
-created yet.
+**Incremental sync** is `messages.where("updatedAt", ">", lastSyncTime)`
+per conversation, directly extending `sight`'s
+`SyncNotes(ctx, since time.Time)` pattern. Combining that with an equality
+filter on `hiddenFor` needs a composite index (Firestore supports it; the
+single-inequality-field limit restricts only inequality filters — see
+R-006's Web Citations). Sync is **manual-check-only** for v1 — no
+background polling ([R-006](006-private-chat-application.md)).
 
-**Repo boundary note (added 2026-06-24, see
-[022-tui-shell-repo-boundary.md](022-tui-shell-repo-boundary.md)):** every
-reference to "the TUI shell" or "the owner's TUI view" across **all three**
-diagram blocks below — the shell call-flow block, the chat/`bateau` block,
-and the deployment-dashboard block — lives in `kingfish`
-(`github.com/monamaret/kingfish`, not yet created), a separate repo from
-`skipper`, matching the repo boundary already drawn for the
-backend/web-app/TUI-client layers in the System overview diagram above.
-`skipper`'s own repo holds none of it — only the Kustomize bases and
-catalog-write path for the backend apps shown connecting to it (Soft
-Serve, `pocket`, `rebus`).
+Relational stores (Cloud SQL/Postgres) and self-hosted databases are
+explicitly rejected (no join need; self-hosting reintroduces operational
+burden the platform avoids via managed services — Principle IV).
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  TUI shell (001) — Bubble Tea launcher, configurable styling        │
-│  [lives in kingfish, not skipper — see repo boundary note above]    │
-│                                                                      │
-│  ┌────────────────┐        ┌──────────────────────────────────┐     │
-│  │ App catalog     │        │ Local-only views (no catalog      │     │
-│  │ client          │        │ entry needed):                    │     │
-│  │ - fetch GCS/    │        │ - Markdown reader (002, Glow)     │     │
-│  │   Firestore     │        └──────────────────────────────────┘     │
-│  │ - local cache,  │                                                 │
-│  │   fallback on   │        ┌──────────────────────────────────┐     │
-│  │   fetch failure │───────▶│ Dispatch per catalog entry:       │     │
-│  └────────────────┘        │                                    │     │
-│                              │  SSH-passthrough driver           │     │
-│                              │  (suspend terminal, hand off,     │     │
-│                              │   restore on exit)                │     │
-│                              │      │                            │     │
-│                              │      ▼                            │     │
-│                              │  ┌─────────────────────┐          │     │
-│                              │  │ Wishlist gateway      │          │     │
-│                              │  │ (one GKE LoadBalancer,│          │     │
-│                              │  │ shared by all Wish-   │          │     │
-│                              │  │ pattern SSH apps)     │          │     │
-│                              │  └──────────┬──────────┘          │     │
-│                              │             ▼                     │     │
-│                              │  ┌─────────────────────┐          │     │
-│                              │  │ Soft Serve (003)     │          │     │
-│                              │  │ off-the-shelf image, │          │     │
-│                              │  │ GKE, SSH-session-     │          │     │
-│                              │  │ served, behind        │          │     │
-│                              │  │ Wishlist              │          │     │
-│                              │  └─────────────────────┘          │     │
-│                              │                                    │     │
-│                              │  In-process embedded-view driver   │     │
-│                              │  (resolves viewID against the      │     │
-│                              │   shell's compile-time registry;   │     │
-│                              │   apps may own nested screens,     │     │
-│                              │   honoring the shared Esc/q/?/      │     │
-│                              │   status-bar UX convention)        │     │
-│                              │      │                            │     │
-│                              │      ▼                            │     │
-│                              │  ┌─────────────────────┐          │     │
-│                              │  │ Stash app (004) —     │          │     │
-│                              │  │ backend = `pocket`    │          │     │
-│                              │  │ (github.com/monamaret/│          │     │
-│                              │  │ pocket, not yet       │          │     │
-│                              │  │ created), GitHub-repo │          │     │
-│                              │  │ build, GKE, Cloud     │          │     │
-│                              │  │ Storage (content) +   │          │     │
-│                              │  │ Firestore (metadata,  │          │     │
-│                              │  │ soft delete), local   │          │     │
-│                              │  │ cache + incr. sync    │          │     │
-│                              │  ├─────────────────────┤          │     │
-│                              │  │ Chat app (005) —      │          │     │
-│                              │  │ backend = `rebus`     │          │     │
-│                              │  │ (github.com/monamaret/│          │     │
-│                              │  │ rebus, not yet created)│          │     │
-│                              │  │ GitHub-repo build,    │          │     │
-│                              │  │ GKE, Firestore-backed │          │     │
-│                              │  │ (conversations/{id}/  │          │     │
-│                              │  │ messages/{id}), owner │          │     │
-│                              │  │ TUI view here; web    │          │     │
-│                              │  │ client deferred       │          │     │
-│                              │  └─────────────────────┘          │     │
-│                              │                                    │     │
-│                              │  CLI-exec driver — shares the      │     │
-│                              │  same suspend-and-exec core as     │     │
-│                              │  SSH-passthrough above (just a     │     │
-│                              │  local binary instead of `ssh`);   │     │
-│                              │  see the dashboard (006) diagram   │     │
-│                              │  block below for its target app    │     │
-│                              └──────────────────────────────────┘     │
-└─────────────────────────────────────────────────────────────────────┘
+## Authentication & identity
 
-┌─────────────────────────────────────────────────────────────────────┐
-│  Chat app (005) — bateau, the guest's separate client                │
-│                                                                       │
-│  ┌────────────────────────────┐      ┌─────────────────────────┐    │
-│  │ `bateau`                    │─────▶│ `rebus` backend (GKE) —  │    │
-│  │ (github.com/monamaret/      │      │ same backend as the      │    │
-│  │ bateau, not yet created;    │      │ owner's chat view —      │    │
-│  │ lighter binary, no shell/   │      │ send/read/hide only, no  │    │
-│  │ catalog awareness) —        │      │ admin hard-delete/edit   │    │
-│  │ imports `rebus`'s public    │      └─────────────────────────┘    │
-│  │ client package (adapted     │                                       │
-│  │ sight import-boundary,      │                                       │
-│  │ public not `internal/`,     │                                       │
-│  │ since `rebus`/`bateau`/     │                                       │
-│  │ `kingfish` are separate     │                                       │
-│  │ repos)                      │                                       │
-│  └────────────────────────────┘                                       │
-└─────────────────────────────────────────────────────────────────────┘
+SSH-public-key-signed challenge, **IdP-free** (Principle VI, [R-002](002-hybrid-tui-layer.md),
+[R-014](014-guest-chat-client-scope-and-auth-ux.md)): the client signs a
+challenge locally and **never transmits the private key**. Identity is
+independent of GCP/Google or any external identity provider; participants —
+including the outside-domain guest — are provisioned solely through the
+owner-controlled public-key registry. Clients resolve their key via the SSH
+agent first, falling back to an encrypted private-key file with a
+passphrase prompt ([R-014](014-guest-chat-client-scope-and-auth-ux.md)).
+WebAuthn/passkeys are reserved for an *if/when* future web client only
+([R-020](020-webauthn-implementation-mechanics.md)) and are out of scope
+for the TUI-only v1.
 
-┌─────────────────────────────────────────────────────────────────────┐
-│  Deployment/admin dashboard (006) — generic scaffold's v1 instance   │
-│                                                                       │
-│  ┌──────────────┐         ┌─────────────────────────────────────┐    │
-│  │ CLI client    │────────▶│ Backend (GKE) — stateless RPC/HTTPS, │    │
-│  │ (Cobra, Go)   │         │ MCP server co-located here (not on   │    │
-│  │ renders MCP's │         │ Cloud Run) — shared operations read: │    │
-│  │ plain-text/   │         │  - app catalog (GCS, per 025)        │    │
-│  │ ASCII-chart   │         │  - live GKE health (Kubernetes API)  │    │
-│  │ tier directly │         └───────────────┬─────────────────────┘    │
-│  └──────┬───────┘                          │                          │
-│         │ shelled out to                  │ private VPC path,        │
-│         │ from the TUI shell's             │ backend never            │
-│         │ catalog entry (001)              │ required to be public    │
-│         ▼                                  ▼                          │
-│  ┌──────────────┐         ┌─────────────────────────────────────┐    │
-│  │ TUI shell     │         │ Web client — Firebase Hosting        │    │
-│  │ (001) renders │         │ (static shell), calls the backend's   │    │
-│  │ same ASCII    │         │ MCP-exposed operations client-side;   │    │
-│  │ visualization │         │ no live mode, no WebAuthn needed for  │    │
-│  │ inline        │         │ this instance                         │    │
-│  └──────────────┘         └─────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────────┘
-```
+## Role model
 
-Key call-flow notes:
+Asymmetric, enforced **server-side** (Principle VII, [R-013](013-cli-command-mapping-and-privilege-model.md)):
 
-- The catalog client (001) is the single discovery path for every driver
-  — no *custom-built* discovery gateway exists (confirmed in
-  [002 → Decision Log](002-hybrid-tui-layer.md#decision-log)). The
-  SSH-passthrough driver does route through the real
-  `github.com/charmbracelet/wishlist` tool, but only as a shared
-  *network*-multiplexing layer for Wish-pattern SSH apps (one
-  LoadBalancer for all of them) — the catalog still owns discovery
-  exclusively; Wishlist is never queried for "what apps exist." See the
-  amendment in [002 → Decision Log](002-hybrid-tui-layer.md#decision-log)
-  and [007-tui-shell-dispatch-and-catalog.md](007-tui-shell-dispatch-and-catalog.md#decision-log).
-- The Markdown reader (002) and the stash/chat apps (004/005) all render
-  through the same local-Markdown/incremental-sync shape conceptually, but
-  only the reader has zero remote component — stash and chat both talk to
-  their own GKE-deployed backends.
-- Chat (005) has two terminal clients for v1 (owner's TUI view, guest's
-  separate standalone client, sharing one Go client-library package) but
-  no *web* client — that's deferred, with the dual-thin-client (CLI + web)
-  idea generalized into its own reusable scaffold (006) instead of being
-  chat-specific.
-- The deployment/admin dashboard (006) is the one app in this release with
-  both a CLI and a web client against the same backend — and the first
-  app whose web layer is GCP-native (Firebase Hosting + Cloud Run) rather
-  than Cloudflare, per
-  [005-generic-app-scaffold.md → Decision Log](005-generic-app-scaffold.md#decision-log).
-  Unlike every other app in this release, it reads its own data from two
-  sources (the app catalog populated by feature 003, and live GKE health),
-  rather than owning its own primary data store.
-- MCP responses include a plain-text/terminal-renderable visualization
-  tier (ASCII charts/sparklines), so the same stats render identically
-  whether reached via the CLI (standalone or shelled-out-to from the TUI
-  shell) or the static web dashboard — one set of shared operations, three
-  rendering surfaces, no duplicated visualization logic.
+| Role | Capabilities |
+| --- | --- |
+| **admin** (owner) | hard-delete (physically remove the message doc), edit a sent message, invite participants |
+| **participant** (guest) | hide their own view only (set `hiddenFor`, never remove the document); cannot edit |
 
-## Deployment pipeline
+The per-participant `role` field is checked at the backend operation/adapter
+layer, never in the clients. Admin operations surface **only** through
+`kingfish`'s embedded owner view — they are never exposed to `bateau` and
+never become a `skipper`-level command. There is no generic RBAC system;
+this one asymmetry is the whole model.
 
-For apps 003/004/005/006: `skipper app add` (source-specific — `--image`
-for off-the-shelf apps like the v1 Soft Serve test case, `--github <repo>`
-for the stash, chat, and dashboard backends, per
-[003-backend-application-deployment.md](003-backend-application-deployment.md))
-→ generates a **Kustomize base** under `deployments/<app-name>/` in this
-repo — a dedicated `Namespace` (`skipper-<app-name>`, with a default-deny
-`NetworkPolicy` and explicit allow rules, per
-[019-gke-namespace-strategy.md](019-gke-namespace-strategy.md)), a
-`Deployment`/`Service` per Principle IV defaults, and the app's Workload
-Identity binding (a Kubernetes `ServiceAccount` plus Config Connector's
-`IAMServiceAccount`/`IAMPolicyMember` CRDs, per
-[021-iam-service-account-scoping-strategy.md](021-iam-service-account-scoping-strategy.md))
-— **persisted and committed**, applied atomically via `kubectl apply -k`
-(per [010-gke-manifest-generation-and-upgrade.md](010-gke-manifest-generation-and-upgrade.md))
-→ optional `skipper app set-interface` → app catalog write (a single
-`catalog.json` object in Cloud Storage, per
-[025-app-catalog-document-contract.md](025-app-catalog-document-contract.md))
-→ discoverable by the TUI shell (`kingfish`)'s catalog client on next
-refresh. Shared infrastructure (the Wishlist gateway) follows the same
-namespace convention with its own dedicated namespace
-(`skipper-wishlist`, per [019](019-gke-namespace-strategy.md#decision-log)).
+## Confidentiality
 
-`skipper app update --image <new-ref>` patches an app's persisted base
-with a new image reference and re-applies. `skipper app upgrade`
-re-renders an app's base against `skipper`'s current manifest-generation
-template (e.g. if Principle IV's defaults change in a future `skipper`
-release) and re-applies — a distinct operation from `update`, per
-[010 → Decision Log](010-gke-manifest-generation-and-upgrade.md#decision-log).
+Transport encryption (HTTPS) + Firestore at-rest encryption **only** —
+**not** end-to-end encrypted; the backend can read `content` by design
+(Principle V, [R-006](006-private-chat-application.md)). Retention is
+**indefinite** (no automatic expiry). This is a deliberate, recorded
+decision: it is load-bearing for admin edit, server-side role enforcement,
+and the plaintext `content` field the sync path reads. Adopting E2EE (or
+finite retention, group chat, or a real-time mode) is a
+constitution-level amendment, not a routine feature.
 
-## Upgrade / maintenance flow
+## Deployment
 
-The general mechanism (`app update` vs. `app upgrade`, against the
-persisted Kustomize base) is defined in
-[010-gke-manifest-generation-and-upgrade.md](010-gke-manifest-generation-and-upgrade.md) —
-see Deployment pipeline above. Applying that mechanism to each specific
-v1 app (e.g. when/how `stash`'s or `chat`'s image actually gets bumped in
-practice) is still out of scope per each feature item's "Out of scope"
-section; revisit per-app once the first release's apps are running and a
-real upgrade need arises.
+`rebus` is deployed to GKE by `skipper app add --github`, and MUST be
+deployable that way with no hand-run cluster or console mutation
+(Principle VIII). This repo builds from source via WIF-authenticated CI
+into Artifact Registry; the **persisted** Kustomize base and Config
+Connector IAM/namespace config live in **`skipper`'s** `deployments/rebus/`,
+**not** here (repo-separation, [R-023](023-platform-repo-inventory.md)).
+
+- **Namespace** — `rebus` gets its own GKE namespace `skipper-rebus` with
+  a default-deny `NetworkPolicy` and explicit allow rules only for what it
+  needs ([R-019](019-gke-namespace-strategy.md)).
+- **Identity** — `rebus` gets its own dedicated GCP IAM service account
+  `skipper-rebus` bound via Workload Identity (Kubernetes `ServiceAccount`
+  + Config Connector `IAMServiceAccount`/`IAMPolicyMember` CRDs).
+  **No static service-account keys anywhere** in this repo, its images, or
+  its CI ([R-021](021-iam-service-account-scoping-strategy.md)).
+- **Container config** — resource requests/limits, liveness/readiness
+  probes, non-root user (Principle VIII defaults).
+
+## Dependency context (inherited from `skipper`, not owned here)
+
+`rebus` is operated by `skipper`, not by itself. The platform-level
+architecture — the three-layer platform, the TUI shell, the app catalog,
+the Kustomize/`kubectl apply -k` deployment pipeline, the
+`skipper app add`/`update`/`upgrade` commands — is `skipper`'s concern and
+lives in `skipper`'s repo. The decisions `rebus` inherits are recorded in
+the vendored corpus (see [README.md](README.md)); they are cited here, not
+redrawn. For the platform's own architecture/roadmap, consult `skipper`
+(`github.com/monamaret/skipper`), not this file.
+
+The two `rebus` clients (`kingfish`, `bateau`) are likewise separate repos
+with their own architectures; this doc covers only `rebus`'s side of the
+boundary they cross via the `rebus/client` package.
