@@ -1,15 +1,18 @@
 ---
 name: tech-research
-description: Research a technical implementation question, library choice, or architecture decision for skipper, following the standardized specs/research/ pattern — library/best-fit assessment, existing-implementation survey, and a dedicated Web Citations section. Use when starting research on a new technical decision before it becomes a feature item.
+description: Research a technical implementation question, library choice, or architecture decision for rebus, following the standardized specs/research/ pattern — library/best-fit assessment, existing-implementation survey, and a dedicated Web Citations section. Use when starting research on a new technical decision before it becomes a feature item.
 argument-hint: <topic, question, or candidate feature to research>
 ---
 
 ## Purpose
 
 Produce a `specs/research/NNN-<slug>.md` document for `$ARGUMENTS` that
-follows skipper's established research pattern (see
-`specs/research/research-template.md` and the existing docs `001`–`005`
-for worked examples) — not an ad hoc write-up. This skill exists so every
+follows rebus's established research pattern (see
+`specs/research/research-template.md` and the existing rebus-relevant docs
+`006` and `026` for worked examples) — not an ad hoc write-up. The
+numbered `001`–`026` corpus is vendored from `skipper` (see
+`specs/research/README.md`); new rebus research extends it with new
+numbering rather than rewriting inherited docs. This skill exists so every
 technical research doc in this repo is structurally consistent: same
 sections, same rigor on library/pattern assessment, same separation
 between internal cross-references and external web citations.
@@ -37,9 +40,9 @@ extend that doc instead of creating a duplicate — check
      constitution for relevant prior decisions before writing this).
    - **Libraries & Stack** — for every credible candidate (language,
      framework, library, managed service), fill the comparison table and
-     evaluate it against skipper's *actual* stack and constraints (Go/
-     TypeScript, GCP, Kubernetes, single-owner bias), not generic best
-     practice. **State an explicit "Selected" recommendation** — a
+      evaluate it against rebus's *actual* stack and constraints (Go,
+      GCP/Firestore, GKE, single-owner minimal-dependency bias), not
+      generic best practice. **State an explicit "Selected" recommendation** — a
      research doc that surveys options without recommending one is
      incomplete. List every credible rejected candidate with its specific
      reason. Every maturity/license/maintenance claim must trace to a
@@ -53,9 +56,10 @@ extend that doc instead of creating a duplicate — check
      rook-reference, sight) are relevant, name the specific mechanism
      being borrowed, not just the repo. Cite external implementations in
      Web Citations.
-   - **Existing Codebase Evaluation** — assess this repo and any named
-     reference repos already in scope for reuse opportunities, following
-     the precedent in docs `002`, `003`, and `005`.
+    - **Existing Codebase Evaluation** — assess this repo and any named
+      reference repos already in scope for reuse opportunities, following
+      the precedent in the rebus-core docs `006` and `026` (e.g. `sight`'s
+      `SyncNotes` pattern, `rook-reference`'s local cache).
    - **Security & Compliance**, **Performance, Reliability & Operations**
      — fill in whatever is concretely knowable now; don't leave these as
      "Not yet applicable" if there's a real, statable concern (e.g. auth,
@@ -87,8 +91,9 @@ extend that doc instead of creating a duplicate — check
    analysis work this skill exists to do.
 5. **Cross-link.** Add an entry to `specs/research/roadmap.md` §0 if this
    doc introduces a new tracked open-question area; update an existing §0
-   entry instead if it narrows one already there (follow the pattern in
-   how docs `001`–`005` are cross-referenced from `roadmap.md`).
+   entry instead if it narrows one already there (roadmap.md is
+   rebus-scoped — only add items that affect `rebus` itself, not platform-
+   level `skipper` questions).
 6. **Set Status accurately.** `In Progress` if open questions remain,
    `Complete` only once every open question is either resolved (with a
    Decision Log entry) or explicitly deferred with a stated reason.

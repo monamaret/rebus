@@ -44,7 +44,7 @@ three are about the same client, so this doc resolves them together.
 - **Relevant prior work:**
   - [006 → Open Questions](006-private-chat-application.md#open-questions) — the three follow-ups this doc resolves, verbatim.
   - [006 → Decision Log](006-private-chat-application.md#decision-log) — names this client `bateau` (`github.com/monamaret/bateau`) and the backend `rebus` (`github.com/monamaret/rebus`), each its own repo; `bateau` imports `rebus`'s published client package as an external Go module dependency, not an `internal/` package.
-  - [002-hybrid-tui-layer.md → Security & Compliance](002-hybrid-tui-layer.md#security--compliance) — SSH-public-key-based provisioning, no IdP dependency, no long-lived credentials leave the client — the baseline this doc's auth re-check is measured against.
+  - [002-hybrid-tui-layer.md → Security & Compliance](reference/002-hybrid-tui-layer.md#security--compliance) — SSH-public-key-based provisioning, no IdP dependency, no long-lived credentials leave the client — the baseline this doc's auth re-check is measured against.
   - [013-cli-command-mapping-and-privilege-model.md → Decision Log](013-cli-command-mapping-and-privilege-model.md#decision-log) — confirms `bateau` has no admin role; this doc's command surface must not include any admin operation.
   - `github.com/monamaret/biblio`'s own distribution decision (already cited platform-wide) — GitHub Releases via `goreleaser` as the primary install path, `go install` as the alternative for those with a Go toolchain — the direct precedent for this doc's distribution question.
   - `github.com/monamaret/rook-reference`'s config-path convention (`$XDG_CONFIG_HOME/rook/config.json`, with an env var override) — the direct precedent for this doc's config-storage question.
@@ -219,7 +219,7 @@ bbb-le's CLI shape), not an owner preference call.
 - [006-private-chat-application.md](006-private-chat-application.md) — the source of all three follow-ups this doc resolves, and the Decision Log entry naming `rebus`/`bateau` and their repos
 - [005-private-chat-1to1.md (feature)](../features/005-private-chat-1to1.md) — the feature item this research will refine
 - [013-cli-command-mapping-and-privilege-model.md](013-cli-command-mapping-and-privilege-model.md) — confirms `bateau` has no admin role, bounding this doc's command surface
-- [002-hybrid-tui-layer.md](002-hybrid-tui-layer.md) — the SSH-key-based, IdP-free identity baseline this doc's auth re-check is measured against
+- [002-hybrid-tui-layer.md](reference/002-hybrid-tui-layer.md) — the SSH-key-based, IdP-free identity baseline this doc's auth re-check is measured against
 - `github.com/monamaret/biblio` — distribution precedent (GitHub Releases via `goreleaser`, `go install` alternative)
 - `github.com/monamaret/rook-reference`, `github.com/monamaret/bbb-le` — config-path and CLI-shape precedents
 - `github.com/monamaret/rebus` (not yet created) — publishes the client package `bateau` imports

@@ -43,7 +43,7 @@ answers narrow the actual design space.
 ## Background & Context
 
 - **Relevant prior work (already confirmed, not reopened here):**
-  - [002-hybrid-tui-layer.md → Decision Log](002-hybrid-tui-layer.md#decision-log) —
+  - [002-hybrid-tui-layer.md → Decision Log](reference/002-hybrid-tui-layer.md#decision-log) —
     chat uses the stateless rook/sight pattern (not bbb-le's SSH-session-
     served model) specifically for this 1:1, cross-surface app; simple
     custom message protocol, not embedded IRC; outside-domain provisioning
@@ -52,9 +52,9 @@ answers narrow the actual design space.
     mechanism for *if/when* a web client is added.
   - [specs/features/005-private-chat-1to1.md](../features/005-private-chat-1to1.md) —
     current feature scope: TUI-only for v1, web client deferred to the
-    generic app scaffold ([R-005](005-generic-app-scaffold.md)/[F-006](../features/006-deployment-admin-dashboard.md))
+    generic app scaffold ([R-005](reference/005-generic-app-scaffold.md)/[F-006](../features/006-deployment-admin-dashboard.md))
     if/when chat ever adopts it.
-  - [specs/research/002-hybrid-tui-layer.md → Security & Compliance](002-hybrid-tui-layer.md#security--compliance) —
+  - [specs/research/002-hybrid-tui-layer.md → Security & Compliance](reference/002-hybrid-tui-layer.md#security--compliance) —
     no long-lived credentials leave the client; admin role separate from
     chat access; explicit key-revocation tooling required.
 - **Domain assumptions:** "Stateless" so far has meant *the backend
@@ -101,7 +101,7 @@ self-hosting reintroduces avoided operational burden.
   app (see Web Citations).
 - **Incremental sync via `updatedAt` queries**, directly extending
   sight's `NoteService.SyncNotes(ctx, customerID, since time.Time)`
-  pattern already cited in [002](002-hybrid-tui-layer.md): each client
+  pattern already cited in [002](reference/002-hybrid-tui-layer.md): each client
   pulls `messages.where("updatedAt", ">", lastSyncTime)` per conversation
   on manual check (per the confirmed manual-check-only sync model).
   Firestore supports this directly; combining it with an equality filter
@@ -132,7 +132,7 @@ self-hosting reintroduces avoided operational burden.
   client (`bateau`, `github.com/monamaret/bateau`) are **separate
   repositories** (Decision Log) — and the owner's embedded view, living
   in `kingfish`'s own repo *(amended 2026-06-24, see
-  [022-tui-shell-repo-boundary.md → Decision Log](022-tui-shell-repo-boundary.md#decision-log):
+  [022-tui-shell-repo-boundary.md → Decision Log](reference/022-tui-shell-repo-boundary.md#decision-log):
   originally written as "`skipper`'s own repo" — the shell and its
   embedded-view adapters live in `kingfish`, a separate repo from
   `skipper`, not in `skipper` itself)*, is a *third* separate module
@@ -163,7 +163,7 @@ self-hosting reintroduces avoided operational burden.
   (`stash/<space-id>/`) is the model for each client's local message
   cache; the SSH-private-key-signs-an-auth-challenge-locally pattern is
   the model for both clients' auth flow (per the already-confirmed
-  provisioning decision in [002](002-hybrid-tui-layer.md)).
+  provisioning decision in [002](reference/002-hybrid-tui-layer.md)).
 - No `skipper` chat code exists yet — both clients and the backend are
   greenfield, building on these two repos' patterns.
 
@@ -220,7 +220,7 @@ self-hosting reintroduces avoided operational burden.
   shell's global status bar (not just an in-app indicator), and that this
   become a convention other apps with notifications can reuse — not a
   chat-specific mechanism. This is a *shell-level* concern, tracked in
-  [007-tui-shell-dispatch-and-catalog.md → Open Questions](007-tui-shell-dispatch-and-catalog.md#open-questions)
+  [007-tui-shell-dispatch-and-catalog.md → Open Questions](reference/007-tui-shell-dispatch-and-catalog.md#open-questions)
   (generic cross-app notification convention, plus the open question of
   what happens to status-bar notifications during an SSH-passthrough
   session). Not resolved here — Q13's in-app design and this shell-level
@@ -230,7 +230,7 @@ self-hosting reintroduces avoided operational burden.
   default; whether a lazy or user-configurable background sync mode is
   worth adding later is tracked as a shared follow-up alongside the
   catalog's identical default — see
-  [007 → Open Questions](007-tui-shell-dispatch-and-catalog.md#open-questions).
+  [007 → Open Questions](reference/007-tui-shell-dispatch-and-catalog.md#open-questions).
 
 ### Conversation & identity scope (Q10–Q11, confirmed)
 
@@ -298,13 +298,13 @@ by sibling docs:
   convention).
 - [x] ~~Stash's sync/stash commands and backend data model need their own
   detailed-design pass, the way this doc did for chat.~~ — **Resolved by
-  [009-markdown-stash-application.md](009-markdown-stash-application.md):**
+  [009-markdown-stash-application.md](reference/009-markdown-stash-application.md):**
   Cloud Storage for file content + Firestore for metadata (Firestore's
   1 MiB per-document cap rules out Firestore-only storage), the same
   `updatedAt`-incremental-sync pattern reused here from chat, soft delete
   with a recovery window, overwrite-in-place (no version history), and
   folder/tag organization. The backend's repo was separately named
-  `pocket` by [018](018-stash-backend-repo-naming-and-boundary.md).
+  `pocket` by [018](reference/018-stash-backend-repo-naming-and-boundary.md).
 
 ## Decision Log
 
@@ -397,10 +397,10 @@ by sibling docs:
 
 ## Internal References
 
-- [002-hybrid-tui-layer.md](002-hybrid-tui-layer.md) — confirmed chat
+- [002-hybrid-tui-layer.md](reference/002-hybrid-tui-layer.md) — confirmed chat
   architecture (interaction model, protocol, provisioning) this doc does
   not reopen
-- [005-generic-app-scaffold.md](005-generic-app-scaffold.md) — where
+- [005-generic-app-scaffold.md](reference/005-generic-app-scaffold.md) — where
   chat's eventual web client would live if ever built
 - [specs/features/005-private-chat-1to1.md](../features/005-private-chat-1to1.md) —
   the feature item this research will refine with concrete specifics

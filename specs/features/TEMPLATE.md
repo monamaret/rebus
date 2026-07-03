@@ -41,10 +41,10 @@ The confirmed shape, stated as pointers, not re-derivations. Name the repos,
 commands, schemas, and patterns this item assembles — each linked to the doc
 that decided it.
 
-- **Repos touched:** (per [R-023 platform inventory](../research/023-platform-repo-inventory.md))
-- **`skipper` command(s):** (per [R-013 command mapping](../research/013-cli-command-mapping-and-privilege-model.md))
-- **Deployment/config artifacts:** (e.g. `deployments/<app>/` Kustomize base)
-- **Cross-repo interfaces relied on:** (catalog schema, client-package API, etc.)
+- **Repos touched:** (this repo; importing repos `kingfish`/`bateau` if the item changes the wire surface — per [R-023 platform inventory](../research/023-platform-repo-inventory.md))
+- **Deploy command:** (`skipper app add --github` — the GKE deploy path, per [R-013 command mapping](../research/013-cli-command-mapping-and-privilege-model.md))
+- **Deployment/config artifacts:** (the persisted Kustomize base + Config Connector IAM/namespace config live in **`skipper`'s** `deployments/rebus/`, **not** this repo — repo-separation, R-023)
+- **Cross-repo interfaces relied on:** (the public `rebus/client` package API, per [R-026](../research/026-public-client-package-contract.md))
 
 ## Dependencies & sequencing
 
@@ -61,17 +61,17 @@ Concrete, testable statements. Each should map to at least one test below.
 
 ## Test Strategy
 
-**Required — constitution Principle VII (Test-First, NON-NEGOTIABLE):** tests
+**Required — constitution Principle IX (Test-First, NON-NEGOTIABLE):** tests
 are written *before* implementation and MUST be confirmed to fail first. This
 section is filled in before any code for this feature is written; a feature is
 not "Ready for Spec Kit" until it is.
 
 - **Unit test targets:** the units under test and what each asserts (e.g.
-  golden-file tests asserting generated Kustomize bases match committed
-  fixtures under `testdata/`).
+  golden-file tests asserting the public `client` wire types round-trip
+  against committed fixtures under `testdata/`).
 - **Integration test targets:** the end-to-end path(s) exercised, and the real
-  vs. stubbed boundaries (e.g. stubbed `kubectl` invocation vs. a live-cluster
-  apply gated on environment).
+  vs. stubbed boundaries (e.g. Firestore-emulator-backed RPC ops vs. a
+  live-cluster deploy gated on environment).
 - **Fails-first evidence:** how the failing-test-first requirement is
   demonstrated for this feature (the test that fails before implementation and
   passes after).
