@@ -73,7 +73,7 @@ answers narrow the actual design space.
 | **Cloud Firestore** | Conversation/message storage | Proprietary GCP managed service | Mature (GA since 2017) | Actively maintained by Google | High | Already the precedent in this platform's reference repos (`rook-server`'s per-service Firestore namespaces, `sight`'s `NoteService`/`SyncNotes`); Firebase's own documentation explicitly recommends this exact shape — "in a chat application, you might organize users and messages as collections nested within chat room documents" (see Web Citations) |
 | Cloud SQL / managed Postgres | Alternative storage | Managed GCP service | Mature | Actively maintained | Low | No relational/join need — conversations and their messages are a pure parent/child access pattern; would break from the GCP-managed-document-store precedent already used elsewhere for no benefit |
 | Self-hosted Postgres/SQLite on GKE | Alternative storage | OSS | Mature | Self-maintained | Lowest | Reintroduces operational burden (backups, scaling, patching) this platform has deliberately avoided everywhere else via managed services (constitution Principle V) |
-| Sight's `internal/rpc`-style bounded wire-type package (in-house pattern, not a third-party library) | Shared client-library boundary for the two chat clients | N/A | Proven in a real, working repo (`sight`) | Actively used in that repo | High | Directly matches Q14's requirement (owner's TUI view and `bateau`, the guest's standalone client, must share protocol logic, not duplicate it). Adapted as a **public** package published from `rebus` (not an `internal/` package) since `rebus`, `bateau`, and `skipper` are three separate repos/modules — see Architecture Patterns. |
+| Sight's `internal/rpc`-style bounded wire-type package (in-house pattern, not a third-party library) | Shared client-library boundary for the two chat clients | N/A | Proven in a real, working repo (`sight`) | Actively used in that repo | High | Directly matches Q14's requirement (owner's TUI view and `bateau`, the guest's standalone client, must share protocol logic, not duplicate it). Adapted as a **public** package published from `rebus` (not an `internal/` package) since `rebus`, `bateau`, and `kingfish` are three separate repos/modules — see Architecture Patterns. |
 
 **Selected:** Cloud Firestore for storage, with a
 `conversations/{conversationId}/messages/{messageId}` subcollection
@@ -245,7 +245,7 @@ self-hosting reintroduces avoided operational burden.
 ### Outside-domain participant client (Q14, confirmed)
 
 The invited outside-domain participant uses a **lighter-weight,
-standalone chat-only client**, not the full `skipper`-scaffolded TUI
+standalone chat-only client**, not the full `kingfish` TUI
 shell — the rest of the platform (catalog, other apps) is irrelevant to a
 guest who isn't using anything else. This is a separate, minimal client
 built from the same backend API the owner's TUI uses, not a cut-down
@@ -368,7 +368,7 @@ by sibling docs:
   pass once the chat app's screens are actually being built. — Decided
   by: mona.
 - **2026-06-24** — **The outside-domain participant uses a lighter-weight,
-  standalone chat-only client, not the full skipper TUI shell.** —
+  standalone chat-only client, not the full `kingfish` TUI shell.** —
   Rationale: the rest of the platform (catalog, other apps) is irrelevant
   to a guest using only chat; both clients should share the underlying
   client-side library/SDK over the same backend API rather than
@@ -477,7 +477,7 @@ Scope with concrete specifics.
 **F. Outside-domain participant experience** — ✅ resolved, see Decision Log
 
 14. ~~Full TUI shell vs. lighter client?~~ — **Lighter-weight, standalone
-    chat-only client** for the guest — not the full skipper TUI shell.
+    chat-only client** for the guest — not the full `kingfish` TUI shell.
 
 **G. Compliance / non-functional** — ✅ resolved, see Decision Log
 
