@@ -76,13 +76,13 @@ pull via incremental sync — no live/real-time/push path).
 
 - **Backend (`rebus`, this repo)** — Go, stateless RPC over HTTPS. The unit
   of its surface is the `func(ctx, Input) (Output, error)` operation
-  ([R-011](011-shared-operation-definitions-and-mcp-sdk.md)). All Firestore
+  ([R-011](reference/011-shared-operation-definitions-and-mcp-sdk.md)). All Firestore
   access is backend-mediated; Firestore security rules are **not** the
   access-control mechanism (the backend service account has full access;
   role checks live in application logic, [R-013](013-cli-command-mapping-and-privilege-model.md)).
 - **Public client package** — exactly one, `github.com/monamaret/rebus/client`,
   **not** under `internal/` (the Go toolchain forbids cross-repo
-  `internal/` imports; see [R-026](026-public-client-package-contract.md)).
+  `internal/` imports; see [R-026](reference/026-public-client-package-contract.md)).
   It exports the `Client`, its `New(cfg Config)` constructor, the
   request/response wire types, and the exported error sentinels. Any
   breaking change to this surface is a SemVer-major release coordinated
@@ -127,7 +127,7 @@ burden the platform avoids via managed services — Principle IV).
 
 ## Authentication & identity
 
-SSH-public-key-signed challenge, **IdP-free** (Principle VI, [R-002](002-hybrid-tui-layer.md),
+SSH-public-key-signed challenge, **IdP-free** (Principle VI, [R-002](reference/002-hybrid-tui-layer.md),
 [R-014](014-guest-chat-client-scope-and-auth-ux.md)): the client signs a
 challenge locally and **never transmits the private key**. Identity is
 independent of GCP/Google or any external identity provider; participants —
@@ -136,7 +136,7 @@ owner-controlled public-key registry. Clients resolve their key via the SSH
 agent first, falling back to an encrypted private-key file with a
 passphrase prompt ([R-014](014-guest-chat-client-scope-and-auth-ux.md)).
 WebAuthn/passkeys are reserved for an *if/when* future web client only
-([R-020](020-webauthn-implementation-mechanics.md)) and are out of scope
+([R-020](reference/020-webauthn-implementation-mechanics.md)) and are out of scope
 for the TUI-only v1.
 
 ## Role model
@@ -172,16 +172,16 @@ deployable that way with no hand-run cluster or console mutation
 (Principle VIII). This repo builds from source via WIF-authenticated CI
 into Artifact Registry; the **persisted** Kustomize base and Config
 Connector IAM/namespace config live in **`skipper`'s** `deployments/rebus/`,
-**not** here (repo-separation, [R-023](023-platform-repo-inventory.md)).
+**not** here (repo-separation, [R-023](reference/023-platform-repo-inventory.md)).
 
 - **Namespace** — `rebus` gets its own GKE namespace `skipper-rebus` with
   a default-deny `NetworkPolicy` and explicit allow rules only for what it
-  needs ([R-019](019-gke-namespace-strategy.md)).
+  needs ([R-019](reference/019-gke-namespace-strategy.md)).
 - **Identity** — `rebus` gets its own dedicated GCP IAM service account
   `skipper-rebus` bound via Workload Identity (Kubernetes `ServiceAccount`
   + Config Connector `IAMServiceAccount`/`IAMPolicyMember` CRDs).
   **No static service-account keys anywhere** in this repo, its images, or
-  its CI ([R-021](021-iam-service-account-scoping-strategy.md)).
+  its CI ([R-021](reference/021-iam-service-account-scoping-strategy.md)).
 - **Container config** — resource requests/limits, liveness/readiness
   probes, non-root user (Principle VIII defaults).
 

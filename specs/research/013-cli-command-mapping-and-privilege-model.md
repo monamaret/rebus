@@ -88,7 +88,7 @@ below) — and are deliberately absent from the rows above until a design pass
 exists; this note keeps the table honestly authoritative rather than silently
 incomplete.)*
 *(Corrected 2026-06-24, see
-[022-tui-shell-repo-boundary.md → Decision Log](022-tui-shell-repo-boundary.md#decision-log):
+[022-tui-shell-repo-boundary.md → Decision Log](reference/022-tui-shell-repo-boundary.md#decision-log):
 the row above originally read `skipper` *(no subcommand)*, implying the
 shell ran in-process inside `skipper`'s own binary. The shell — and the
 catalog-dispatch logic this row describes — lives in `kingfish`, a
@@ -133,7 +133,7 @@ behavior of its own.)*
 - **Admin operations surface wherever the app's own interface already
   is — never as a new `skipper`-level command.** *(Note added
   2026-06-24, see
-  [022-tui-shell-repo-boundary.md → Decision Log](022-tui-shell-repo-boundary.md#decision-log):
+  [022-tui-shell-repo-boundary.md → Decision Log](reference/022-tui-shell-repo-boundary.md#decision-log):
   the owner's TUI-embedded chat view referenced below lives in
   `kingfish`'s own repo, a separate repo from `skipper` — not in
   `skipper` itself, which holds no shell-side code.)* For chat specifically
@@ -251,10 +251,10 @@ runtime characteristic.
 
 ## Internal References
 
-- [002-hybrid-tui-layer.md → Security & Compliance](002-hybrid-tui-layer.md#security--compliance) — the bbb-le/rook-server-cli precedent this doc's "admin lives on the app, not the platform" conclusion is built on
-- [003-backend-application-deployment.md](003-backend-application-deployment.md), [010-gke-manifest-generation-and-upgrade.md](010-gke-manifest-generation-and-upgrade.md), [012-firebase-hosting-cloud-run-deployment.md](012-firebase-hosting-cloud-run-deployment.md), [007-tui-shell-dispatch-and-catalog.md](007-tui-shell-dispatch-and-catalog.md) — the command/tool decisions consolidated into Part 1's table
+- [002-hybrid-tui-layer.md → Security & Compliance](reference/002-hybrid-tui-layer.md#security--compliance) — the bbb-le/rook-server-cli precedent this doc's "admin lives on the app, not the platform" conclusion is built on
+- [003-backend-application-deployment.md](reference/003-backend-application-deployment.md), [010-gke-manifest-generation-and-upgrade.md](reference/010-gke-manifest-generation-and-upgrade.md), [012-firebase-hosting-cloud-run-deployment.md](reference/012-firebase-hosting-cloud-run-deployment.md), [007-tui-shell-dispatch-and-catalog.md](reference/007-tui-shell-dispatch-and-catalog.md) — the command/tool decisions consolidated into Part 1's table
 - [006-private-chat-application.md](006-private-chat-application.md) — the admin/participant asymmetry this doc generalizes into a standard convention
-- [011-shared-operation-definitions-and-mcp-sdk.md](011-shared-operation-definitions-and-mcp-sdk.md) — the per-adapter auth-enforcement pattern this doc's role-check extends
+- [011-shared-operation-definitions-and-mcp-sdk.md](reference/011-shared-operation-definitions-and-mcp-sdk.md) — the per-adapter auth-enforcement pattern this doc's role-check extends
 - [specs/features/005-private-chat-1to1.md](../features/005-private-chat-1to1.md) — the feature item this research will refine with the explicit `role` field and the invite-action placement
 - [.specify/memory/constitution.md](../../.specify/memory/constitution.md) — Principle I (minimal-dependency bias) and Principle II (orchestrate, don't reimplement), both directly load-bearing above
 
