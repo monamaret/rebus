@@ -1,0 +1,64 @@
+# Go
+*.exe
+*.test
+*.out
+vendor/
+/skipper
+/dist/
+
+# Node / TypeScript (skipper itself and any in-repo tooling)
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+*.log
+
+# Kubernetes / cloud tooling — never commit real credentials or cluster state
+kubeconfig
+kubeconfig.yaml
+*.kubeconfig
+.kube/
+*-kubeconfig*
+
+# GCP credentials — service-account keys must never be committed (see
+# constitution Security & Operational Posture: Workload Identity / WIF only)
+*.json.key
+gcp-key*.json
+service-account*.json
+*-credentials.json
+application_default_credentials.json
+
+# Terraform state and local overrides
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+
+# Helm
+*.tgz
+charts/*/charts/
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+!*.example.key
+
+# Universal
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Personal/machine-specific agent config — never project-level.
+# Shared workflow tooling (.specify/, .claude/skills/, .opencode/agents/,
+# opencode.json) is tracked deliberately and is NOT covered by this section.
+.claude/settings.local.json
+.cursor/
+.windsurf/
+.clinerules/
