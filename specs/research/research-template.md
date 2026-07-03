@@ -39,7 +39,7 @@ Evaluate candidate languages, runtimes, frameworks, libraries, and services. Eve
 Survey the architecture and design patterns that apply, including **known existing implementations of each pattern** — open source projects, vendor reference architectures, or write-ups that already solve this problem or a close analog. Cite every such implementation in **Web Citations** below; don't describe a pattern in the abstract when a concrete existing implementation can be pointed to instead. Note constraints such as latency, throughput, consistency, deployment topology, and operational concerns. Include diagrams where helpful.
 
 - **Candidate patterns:**
-- **Existing implementations surveyed:** (project/repo, what it does, what's reusable vs. not — see [005-generic-app-scaffold.md](005-generic-app-scaffold.md) or [002-hybrid-tui-layer.md](002-hybrid-tui-layer.md) for the shape this section should take)
+- **Existing implementations surveyed:** (project/repo, what it does, what's reusable vs. not — see [005-generic-app-scaffold.md](reference/005-generic-app-scaffold.md) or [002-hybrid-tui-layer.md](reference/002-hybrid-tui-layer.md) for the shape this section should take)
 - **Selected pattern(s):**
 - **Tradeoffs:**
 - **Integration points:**

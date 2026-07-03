@@ -24,7 +24,7 @@ here — see the vendored corpus ([README.md](README.md)) for their status.
 
 - [ ] **`rebus`'s concrete operation/method set (F-005)** — the shared
   client-package *shape* is fixed in
-  [R-026](026-public-client-package-contract.md) (`New(cfg)`, ctx-first
+  [R-026](reference/026-public-client-package-contract.md) (`New(cfg)`, ctx-first
   `func(ctx, In) (Out, error)`, a `sight`-shaped `Sync(ctx, since)`,
   injected `Authenticator`, typed error sentinels), but the concrete method
   roster (`Send`, `Edit`, `Delete`, `Hide`, `Invite`, `ListConversations`,
@@ -55,7 +55,7 @@ import, exercising the full chat data model end to end. The design is
 confirmed and scoped directly from [R-006](006-private-chat-application.md),
 [R-013](013-cli-command-mapping-and-privilege-model.md),
 [R-014](014-guest-chat-client-scope-and-auth-ux.md), and
-[R-026](026-public-client-package-contract.md).
+[R-026](reference/026-public-client-package-contract.md).
 
 **None of the feature items below exist on disk yet** — `specs/features/`
 holds only `TEMPLATE.md`. The planned filenames resolve once the items are
