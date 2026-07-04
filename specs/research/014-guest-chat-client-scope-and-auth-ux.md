@@ -62,7 +62,7 @@ three are about the same client, so this doc resolves them together.
 | Candidate | Purpose | License | Maturity | Maintenance | Fit | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | `golang.org/x/crypto/ssh/agent` | Sign the auth challenge via a running SSH agent, if available | BSD-3-Clause | Mature, official Go extended-stdlib | Actively maintained by the Go team | High | Standard library for talking to an agent over `SSH_AUTH_SOCK` — already implicitly assumed by the platform-wide "SSH private key signs an auth challenge" pattern; this doc just makes the *fallback* behavior explicit. |
-| `golang.org/x/crypto/ssh` (`ParsePrivateKeyWithPassphrase`/`ParseRawPrivateKeyWithPassphrase`) | Sign the challenge directly from a key file when no agent is available, prompting for a passphrase if the key is encrypted | BSD-3-Clause | Mature | Actively maintained by the Go team | High | Confirmed via Go's own package docs (see Web Citations): built-in support for both PEM-encrypted and OpenSSH-native encrypted private keys — no third-party dependency needed for the fallback path. |
+| `golang.org/x/crypto/ssh` (`ParsePrivateKeyWithPassphrase`/`ParseRawPrivateKeyWithPassphrase`) | Sign the challenge directly from a key file when no agent is available, prompting for a passphrase if the key is encrypted | BSD-3-Clause | Mature | Actively maintained by the Go team | High | Confirmed via Go's own package docs (see Web Citations): `ParsePrivateKeyWithPassphrase`/`ParseRawPrivateKeyWithPassphrase` decrypt keys in PKCS#1, PKCS#8, OpenSSL, and OpenSSH formats — covering both classical PEM-encrypted and OpenSSH-format encrypted private keys in one call, so no third-party dependency is needed for the fallback path. |
 | `golang.org/x/term` | Securely read a passphrase from the terminal (no echo) | BSD-3-Clause | Mature, official Go extended-stdlib | Actively maintained by the Go team | High | The standard, already-idiomatic way to prompt for a hidden passphrase in a Go CLI — no new dependency class introduced. |
 
 **Selected:** Try the SSH agent first (if `SSH_AUTH_SOCK` is set and the
@@ -222,17 +222,89 @@ bbb-le's CLI shape), not an owner preference call.
 - [002-hybrid-tui-layer.md](reference/002-hybrid-tui-layer.md) — the SSH-key-based, IdP-free identity baseline this doc's auth re-check is measured against
 - `github.com/monamaret/biblio` — distribution precedent (GitHub Releases via `goreleaser`, `go install` alternative)
 - `github.com/monamaret/rook-reference`, `github.com/monamaret/bbb-le` — config-path and CLI-shape precedents
-- `github.com/monamaret/rebus` (not yet created) — publishes the client package `bateau` imports
-- `github.com/monamaret/bateau` (not yet created) — this doc's subject; full implementation lives there
+- `github.com/monamaret/rebus` (created 2026-06-24) — publishes the client package `bateau` imports
+- `github.com/monamaret/bateau` (created 2026-06-24) — this doc's subject; full implementation lives there
 - [.specify/memory/constitution.md](../../.specify/memory/constitution.md) — Principle I (minimal-dependency bias) and the Security & Operational Posture section, both directly load-bearing above
 
 ## Web Citations
 
 | Title | URL | Accessed | Relevance |
 | --- | --- | --- | --- |
-| `golang.org/x/crypto/ssh/agent` package docs | https://pkg.go.dev/golang.org/x/crypto/ssh/agent | 2026-06-24 | Confirms the standard library for SSH-agent-based signing this doc's primary auth path uses. |
-| Web search — Go SSH agent fallback to private key file pattern | (search query, no single URL) | 2026-06-24 | Confirms the agent-first, key-file-fallback pattern as an established real-world Go CLI convention ("if ssh-agent auth socket is present... used as primary authentication method with fallback to private keys"), and that `golang.org/x/crypto/ssh` natively supports both PEM- and OpenSSH-encrypted private keys via `ParsePrivateKeyWithPassphrase`/`ParseRawPrivateKeyWithPassphrase` — basis for needing no third-party dependency for the fallback path. |
+| `golang.org/x/crypto/ssh` package docs | https://pkg.go.dev/golang.org/x/crypto/ssh | 2026-07-03 | Source of the passphrase-protected key parsing this doc's key-file fallback uses — `ParsePrivateKeyWithPassphrase(pemBytes, passphrase []byte) (Signer, error)` and `ParseRawPrivateKeyWithPassphrase(pemBytes, passphrase []byte) (interface{}, error)`, both verified present (module v0.53.0). They decrypt keys in PKCS#1, PKCS#8, OpenSSL, and OpenSSH formats, so both classical PEM-encrypted and OpenSSH-format encrypted private keys are handled in one call — no third-party dependency needed. |
+| `golang.org/x/crypto/ssh/agent` package docs | https://pkg.go.dev/golang.org/x/crypto/ssh/agent | 2026-07-03 | Source of the SSH-agent client this doc's primary auth path uses — `NewClient(rw io.ReadWriter) ExtendedAgent` over `$SSH_AUTH_SOCK`, bridged to an `ssh.AuthMethod` via `ssh.PublicKeysCallback(agentClient.Signers())`. Verified present (module v0.53.0). |
+| `golang.org/x/term` package docs | https://pkg.go.dev/golang.org/x/term | 2026-07-03 | Source of the no-echo passphrase prompt this doc's fallback uses — `func ReadPassword(fd int) ([]byte, error)`, "reads a line of input from a terminal without local echo... commonly used for inputting passwords and other sensitive data." Verified present (module v0.44.0). |
+| Cobra — Go CLI framework | https://pkg.go.dev/github.com/spf13/cobra | 2026-07-03 | The `<noun> <verb>` CLI framework bateau's command surface mirrors (interactive TUI default + `history`/`send` non-interactive commands, `--host`/`--identity` globals) — the same framework bbb-le's own CLI uses. |
+| Bubble Tea — terminal UI framework | https://pkg.go.dev/github.com/charmbracelet/bubbletea | 2026-07-03 | The terminal UI framework bateau's interactive single-conversation view uses — the same framework bbb-le's TUI uses. |
+| `goreleaser` — Go release automation | https://goreleaser.com | 2026-07-03 | The release-automation tool bateau's GitHub-Releases distribution uses — directly reusing biblio's own `.goreleaser.yaml` distribution precedent (verified present in `github.com/monamaret/biblio`); `go install` is the no-toolchain-required alternative. |
+| `github.com/monamaret/bbb-le` — `cmd/root.go`, `specs/cli.md` | https://github.com/monamaret/bbb-le | 2026-07-03 (re-verified against current source) | Source of the `--identity`/`-i` global flag + `BBB_IDENTITY` env + `~/.ssh/id_ed25519` default convention this doc says bateau mirrors — present verbatim in bbb-le's Cobra root command and its CLI spec. |
+| `github.com/monamaret/biblio` — `.goreleaser.yaml` | https://github.com/monamaret/biblio | 2026-07-03 (re-verified against current source) | Source of the GitHub-Releases-via-goreleaser distribution precedent bateau reuses — biblio's `.goreleaser.yaml` (v2, project `biblio-cli`, cross-compiled linux/darwin/windows × amd64/arm64, published to GitHub Releases) is present and current. |
 
 ## Appendix
 
-None yet.
+### Verification audit — 2026-07-03
+
+Verification pass (deep-research plan, Note 3). This doc had the weakest
+Web Citations of the five (one `pkg.go.dev` link plus a "Web search — no
+single URL" placeholder), so the bulk of the work was replacing that
+placeholder with real, verified citations and confirming the Go SSH API
+claims against current `pkg.go.dev`. All Decision Log entries preserved;
+library/tooling citations strengthened; one precision fix to the key-
+format wording.
+
+**Go SSH / term API claims — all verified against current `pkg.go.dev`**
+(`golang.org/x/crypto` v0.53.0, `golang.org/x/term` v0.44.0, both
+published 2026-06-08):
+- `golang.org/x/crypto/ssh.ParsePrivateKeyWithPassphrase(pemBytes, passphrase []byte) (Signer, error)` — present, exact signature.
+- `golang.org/x/crypto/ssh.ParseRawPrivateKeyWithPassphrase(pemBytes, passphrase []byte) (interface{}, error)` — present, exact signature; "if the passphrase is wrong, it will return x509.IncorrectPasswordError."
+- Both decrypt keys in **PKCS#1, PKCS#8, OpenSSL, and OpenSSH formats** —
+  so classical PEM-encrypted *and* OpenSSH-format encrypted private keys
+  are handled in one call. (Precision fix: the original "PEM-encrypted
+  and OpenSSH-native" phrasing was slightly imprecise, since
+  OpenSSH-format keys are themselves carried in a PEM block — all four
+  formats are PEM-wrapped. The Libraries & Stack wording is corrected to
+  name the four formats explicitly. The decision — use `x/crypto/ssh`,
+  no third-party dependency — is unchanged.)
+- `golang.org/x/crypto/ssh/agent.NewClient(rw io.ReadWriter) ExtendedAgent`
+  over `$SSH_AUTH_SOCK`, bridged via
+  `ssh.PublicKeysCallback(agentClient.Signers())` — present; this is the
+  agent-first auth path. (Note for the implementer: `Signers` is a method
+  on the agent client, not a package-level function — this doc doesn't
+  mis-reference it, just recording the verified shape.)
+- `golang.org/x/term.ReadPassword(fd int) ([]byte, error)` — present,
+  exact; "reads a line of input from a terminal without local echo."
+
+**"Web search — no single URL" citation replaced** with eight real,
+`Accessed = 2026-07-03` citations: `x/crypto/ssh`, `x/crypto/ssh/agent`,
+`x/term`, Cobra, Bubble Tea, goreleaser, plus bbb-le (the `--identity`/`-i`
+convention bateau mirrors) and biblio (the goreleaser distribution
+precedent bateau reuses).
+
+**Platform-precedent claims verified against current source, not assumed:**
+- **bbb-le `--identity`/`-i`** — confirmed present verbatim in bbb-le's
+  Cobra root command (`cmd/root.go`: `StringVarP(&identityFlag, "identity", "i", ...)`)
+  and its CLI spec (`--identity PATH` / `-i` / `BBB_IDENTITY` /
+  `~/.ssh/id_ed25519`). bateau's documented mirror is accurate.
+- **biblio goreleaser distribution** — biblio's `.goreleaser.yaml` (v2,
+  `project_name: biblio-cli`, cross-compiled linux/darwin/windows ×
+  amd64/arm64, published to GitHub Releases) is present and current. The
+  "GitHub Releases via goreleaser + `go install`" precedent bateau reuses
+  is real.
+- **Cobra / Bubble Tea** — both are the frameworks bbb-le's own CLI/TUI
+  use (per bbb-le's libraries rule), confirming the "mirrors bbb-le's CLI
+  shape" basis. Project homepages now cited (previously uncited).
+
+**Cross-references verified:** links to 006, 013, and `reference/002`
+resolve and the cited claims (bateau has no admin role per 013; SSH-key
+IdP-free identity per 002; rebus/bateau naming per 006) are present.
+
+**Stale nouns corrected:** `rebus` and `bateau` were marked "(not yet
+created)" in Internal References; both repos now exist (created
+2026-06-24). Corrected to present tense. Decision Log entries left intact
+as history.
+
+**Unchanged / out of scope:**
+- Every Decision Log entry stands as-is (auth resolution order, SSH-key
+  mechanism retained, goreleaser distribution, command/config surface).
+- The `../features/005-private-chat-1to1.md` link remains dead (feature
+  item doesn't exist yet — F-005 is the owner's gate).
+- Status stays Complete.
