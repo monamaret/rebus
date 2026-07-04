@@ -65,7 +65,7 @@ pull via incremental sync — no live/real-time/push path).
    │  Cloud Firestore                                                          │
    │                                                                            │
    │   conversations/{conversationId}            ← top-level collection        │
-   │     ├─ sender/pubkey, participant/pubkey, role[], createdAt               │
+   │     ├─ sender/pubkey (+role), participant/pubkey (+role), createdAt       │
    │     └─ messages/{messageId}                 ← subcollection               │
    │           └─ sender, content, sentAt, updatedAt, hiddenFor                │
    │                                                                            │
@@ -116,10 +116,15 @@ standard pattern for a chat application (see R-006's Web Citations).
 **Incremental sync** is `messages.where("updatedAt", ">", lastSyncTime)`
 per conversation, directly extending `sight`'s
 `SyncNotes(ctx, since time.Time)` pattern. Combining that with an equality
-filter on `hiddenFor` needs a composite index (Firestore supports it; the
-single-inequality-field limit restricts only inequality filters — see
-R-006's Web Citations). Sync is **manual-check-only** for v1 — no
-background polling ([R-006](006-private-chat-application.md)).
+filter on `hiddenFor` requires a **composite index** — Firestore's rule is
+that combining equality (`==`) with inequality (`>`) operators requires
+one, and Firestore creates it on request (see R-006's Web Citations and
+its 2026-07-03 audit; the earlier "single-inequality-field limit restricts
+only inequality filters" framing is obsolete — Firestore now supports
+multi-field inequality queries). The sync design itself
+(`updatedAt > … AND hiddenFor == …`) is unchanged. Sync is
+**manual-check-only** for v1 — no background polling
+([R-006](006-private-chat-application.md)).
 
 Relational stores (Cloud SQL/Postgres) and self-hosted databases are
 explicitly rejected (no join need; self-hosting reintroduces operational
@@ -136,7 +141,7 @@ owner-controlled public-key registry. Clients resolve their key via the SSH
 agent first, falling back to an encrypted private-key file with a
 passphrase prompt ([R-014](014-guest-chat-client-scope-and-auth-ux.md)).
 WebAuthn/passkeys are reserved for an *if/when* future web client only
-([R-020](reference/020-webauthn-implementation-mechanics.md)) and are out of scope
+([R-002](reference/002-hybrid-tui-layer.md) for the policy, [R-020](reference/020-webauthn-implementation-mechanics.md) for the mechanics) and are out of scope
 for the TUI-only v1.
 
 ## Role model
@@ -199,3 +204,56 @@ redrawn. For the platform's own architecture/roadmap, consult `skipper`
 The two `rebus` clients (`kingfish`, `bateau`) are likewise separate repos
 with their own architectures; this doc covers only `rebus`'s side of the
 boundary they cross via the `rebus/client` package.
+
+## Appendix
+
+### Verification audit — 2026-07-03
+
+Verification pass (deep-research plan, Note 4). This synthesis doc was
+verified *after* the three primary docs (R-006, R-013, R-014) were
+strengthened, so it inherits their corrections. All R-NNN citations
+resolve and support the claims attributed to them; Principle citations
+verified against the rebus constitution (not skipper's); three edits
+applied.
+
+**R-NNN citations — all verified.** R-002 (stateless rook/sight pattern,
+SSH-key IdP-free identity), R-006 (Firestore subcollection schema,
+`updatedAt`-incremental sync, client-cache), R-011 (`func(ctx, Input)
+(Output, error)` operation convention), R-013 (asymmetric roles, no
+generic RBAC), R-019 (namespace `skipper-rebus`, default-deny
+NetworkPolicy), R-021 (per-app IAM SA `skipper-rebus` via Workload
+Identity + Config Connector, no static keys), R-023 (Kustomize base in
+`skipper`'s `deployments/rebus/`), R-026 (one public `rebus/client`
+package, the `Client`/`New`/wire-type/sentinel surface, SemVer-major on
+breaking change) — each opened and confirmed against its reference doc.
+No material drift.
+
+**Principle citations — all correctly mapped to the rebus constitution**
+(unlike R-013's pre-fix state): Principle II (stateless RPC → async-only
+delivery), III (client-package cross-repo contract), IV (Firestore-backed
+data model), V (transport+at-rest, not E2EE), VI (SSH-key, IdP-free),
+VII (asymmetric roles, server-side), VIII (secure-by-default GKE via
+skipper). No Principle II mismatch here — this doc was correctly
+re-scoped.
+
+**Edits applied:**
+- **Composite-index framing — carried over from R-006's 2026-07-03 audit.**
+  The outdated "single-inequality-field limit restricts only inequality
+  filters" rationale is re-anchored to Firestore's actual rule: combining
+  equality (`==`) with inequality (`>`) requires a composite index. The
+  sync design (`updatedAt > … AND hiddenFor == …`) is unchanged. Kept
+  consistent with R-006's corrected framing.
+- **Diagram role notation — clarity fix.** The conversation-doc field was
+  drawn as an unbound `role[]` array; changed to
+  `sender/pubkey (+role), participant/pubkey (+role)` to make explicit
+  that each participant carries their own role, matching the Data Model
+  prose ("explicit per-participant `role` field ... not 'creator =
+  admin'") and R-013's decision. ASCII box alignment preserved.
+- **R-020 traceability — co-citation added.** The "WebAuthn reserved for
+  a future web client" policy is decided in R-002 (which R-020 itself
+  cites for the policy; R-020 supplies the `go-webauthn/webauthn`
+  mechanics). R-002 added alongside R-020.
+
+**No new decisions introduced** — this is a synthesis doc; any change
+surfaced by verification was made in the primary docs (R-006/013/014),
+not here. Status unchanged.

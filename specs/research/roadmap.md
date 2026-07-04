@@ -68,7 +68,7 @@ In dependency order:
   SSH-key-signed-challenge auth, the backend-RPC-over-HTTPS transport, and
   the Firestore client wired to the backend service account. Foundation
   for every operation below.
-  **Planned feature spec (not yet created):** `specs/features/005-private-chat-backend.md`
+  **Planned feature spec (not yet created):** `specs/features/005-private-chat-1to1.md`
 - [ ] **Operation/method set (the public client package surface)** —
   finalize and publish `github.com/monamaret/rebus/client` (the cross-repo
   contract, R-026): the `Client`, `New(cfg)`, wire types, error sentinels,
@@ -76,7 +76,7 @@ In dependency order:
   importers' specs can pin against a known surface). Send/read/hide for
   participants; hard-delete/edit/invite for the admin, gated server-side
   (R-013).
-  **Planned feature spec (not yet created):** `specs/features/005-private-chat-backend.md`
+  **Planned feature spec (not yet created):** `specs/features/005-private-chat-1to1.md`
   (F-005's method set is finalized within it)
 - [ ] **Firestore data model + incremental sync** —
   `conversations/{conversationId}/messages/{messageId}` subcollections,
@@ -108,3 +108,55 @@ consult `github.com/monamaret/skipper` for that view. What `rebus` depends
 on from `skipper` (the `app add`/`update`/`upgrade` deploy path, the
 namespace/IAM convention) is settled in the vendored corpus and cited, not
 re-litigated.
+
+## Appendix
+
+### Verification audit — 2026-07-03
+
+Verification pass (deep-research plan, Note 5 — final). The roadmap is the
+status/synthesis view; verified last so it reflects the strengthened
+corpus. All current-state claims confirmed true at 2026-07-03; all three
+outstanding design questions confirmed still open; one cross-doc filename
+inconsistency corrected.
+
+**Current-state claims — all confirmed true at 2026-07-03:**
+- "the Go module does not exist yet" — confirmed: `github.com/monamaret/rebus`
+  (created 2026-06-24) has no `go.mod`.
+- "`specs/features/` currently holds only `TEMPLATE.md`, and no `rebus`
+  feature item has been created or implemented" — confirmed.
+- "The next concrete step is F-005" — confirmed; F-005 remains the gate.
+
+**Outstanding design questions (§0) — all three confirmed still open:**
+- F-005 method roster — open; the R-026 *shape* (`New(cfg)`, ctx-first
+  ops, `Sync(ctx, since)`, typed sentinels) is fixed, the concrete method
+  roster is not enumerated. Not pre-resolved here (owner's gate).
+- In-app unread-state UI — open; belongs to `kingfish`/`bateau`, which are
+  empty repos (created 2026-06-24/25, no client code yet).
+- Local export/backup format — open.
+
+**Cross-doc filename inconsistency — corrected.** This roadmap was the
+*sole* doc planning the feature-item filename as
+`specs/features/005-private-chat-backend.md`; six other docs — the three
+rebus-owned research docs (R-006, R-013, R-014) AND the frozen platform
+reference docs (R-004, R-005, R-015, R-016) — all use
+`specs/features/005-private-chat-1to1.md`. Since the file does not exist
+yet (F-005 is the gate) and the frozen reference docs are the
+source-of-truth precedent, both occurrences (lines 71, 79) are corrected
+to `005-private-chat-1to1.md` for corpus-wide consistency. This fixes the
+filename only; F-005's *content* remains the owner's gate.
+
+**"Feature 005 of skipper's first release" claim — supported.** The label
+"Private 1:1 chat (TUI, v1 — web deferred)" is confirmed by the vendored
+corpus: R-002's Decision Log ("The web (and mobile) client for chat is
+deferred out of this release's scope; v1 ships TUI-only") and R-004/R-005
+(both treat F-005 as the 1:1 chat app). The "six platform features" count
+is a skipper-level detail not enumerable from the vendored corpus alone,
+but the roadmap correctly defers skipper's own first-release status to
+`github.com/monamaret/skipper`, so the deferral is honest.
+
+**R-NNN citations** in this doc (R-002, R-006, R-011, R-013, R-019,
+R-021, R-023, R-026) were all verified in Notes 1-4; the Principle VIII
+citation (line 91) correctly maps to the rebus constitution. No drift.
+
+**Unchanged:** the four first-release items, dependency order, and the
+client/boundary framing all stand. Status unchanged.

@@ -45,7 +45,7 @@ for app-level privilege models.
   - `007` — the Wishlist-routed SSH-passthrough mechanism and the suspend-and-exec driver core, also part of the command table.
   - `006-private-chat-application.md → Decision Log` — the admin/participant asymmetry (hard-delete/edit/invite vs. hide-only) this doc's privilege convention generalizes.
   - `002-hybrid-tui-layer.md → Security & Compliance` — already names the precedent this doc's convention is built on: "Admin role is backend-only and separate from application access" (bbb-le's documented role split), and that key revocation/invite commands live on *each reference repo's own CLI* (`bbb admin invite`/`admin revoke-key` on bbb-le's own `bbb` binary; `rook-server-cli` as *rook's own*, separate admin tool) — **not** on a shared platform-level tool in any of the three reference repos.
-  - `.specify/memory/constitution.md Principle II` — "`skipper` orchestrates and wraps underlying tools... it MUST NOT reimplement their functionality" — directly extends to this doc's "skipper doesn't own app-level admin logic" conclusion below.
+  - the platform-level "orchestrate, don't reimplement" principle (Skipper Constitution v1.4.0 Principle II — "`skipper` orchestrates and wraps underlying tools... it MUST NOT reimplement their functionality"; inherited by rebus as platform context per the rebus constitution preamble, and distinct from rebus's own Principle II "Stateless RPC Backend") — directly extends to this doc's "skipper doesn't own app-level admin logic" conclusion below.
 - **Domain assumption:** Chat is the only v1 app with an admin/participant
   distinction so far; the convention this doc proposes must hold up for
   *future* apps with similar needs without forcing chat's exact shape
@@ -73,8 +73,8 @@ decision is made here.
 | `skipper app set-interface` | Declare/edit an app's catalog entry (`ssh-passthrough`/`embedded-view`/`cli-exec`/`web`/`none`) | Pure catalog metadata write (GCS/Firestore) — no underlying CLI tool invoked | `003`, `007` |
 | `skipper app update --image <new-ref>` | Bump a deployed app's image | Patches the persisted Kustomize base (or Cloud Run `service.yaml` for web-layer live-mode apps) and re-applies (`kubectl apply -k` / `gcloud run services replace`) | `010`, `012` |
 | `skipper app upgrade` | Re-render an app against `skipper`'s current manifest template | Re-renders + re-applies via the same tool as `update`, but changes *how* it's deployed, not *what's* deployed | `010`, `012` |
-| *(implicit, part of `app add --image` for SSH-passthrough apps)* Wishlist gateway deploy | Stand up the shared SSH gateway | Its own Kustomize base/`kubectl apply -k`, plus a config write registering the new app's `target` in Wishlist's own config | `003`, `007` |
-| `kingfish` *(no subcommand)* | Launch the TUI shell | Dispatches per catalog entry via one of: `ssh` (through Wishlist, for `ssh-passthrough`), `exec` of a local binary (`cli-exec`), or in-process view resolution (`embedded-view`) | `001`, `007`, `022` |
+| *(implicit, part of `app add --image` for SSH-passthrough apps)* Wishlist gateway deploy | Stand up the shared SSH gateway | Its own Kustomize base/`kubectl apply -k`, plus a config write registering the new app's `target` in Wishlist's own config | `007` (amends `002`; plugs into `app add --image` from `003`/`010`) |
+| `kingfish` *(no subcommand)* | Launch the TUI shell | Dispatches per catalog entry via one of: `ssh` (through Wishlist, for `ssh-passthrough`), `exec` of a local binary (`cli-exec`), or in-process view resolution (`embedded-view`) | `002`, `007`, `022` |
 | `skipper site new --type=<type> <repo-name>` | Scaffold a new standalone content site in its own repo | Thin wrapper around `biblio-cli new <repo-name> --type=<type>`; every later lifecycle action (`index`/`update`/`build`/`deploy`) is `biblio-cli`'s own, not `skipper`'s | `017` |
 | `skipper tui new <repo-name>` | Scaffold the TUI shell (`kingfish`) repo | Generator carrying the `kingfish` template (no pre-existing tool to wrap, unlike `site new`) — emits a new, separate repo scaffold | `022` |
 
@@ -100,7 +100,9 @@ behavior of its own.)*
 **Decided shape:**
 
 - **`skipper` has no built-in concept of roles, admin, or permissions.**
-  Per constitution Principle II ("orchestrates... does not reimplement"),
+  Per the platform "orchestrate, don't reimplement" principle (Skipper
+  Constitution v1.4.0 Principle II — not rebus's own Principle II, which
+  is the rebus-specific "Stateless RPC Backend"),
   `skipper`'s job ends at deploying, discovering, and dispatching to an
   app — what an app does with its own users/roles once reachable is the
   app's own domain logic, exactly as none of the three reference repos
@@ -256,7 +258,7 @@ runtime characteristic.
 - [006-private-chat-application.md](006-private-chat-application.md) — the admin/participant asymmetry this doc generalizes into a standard convention
 - [011-shared-operation-definitions-and-mcp-sdk.md](reference/011-shared-operation-definitions-and-mcp-sdk.md) — the per-adapter auth-enforcement pattern this doc's role-check extends
 - [specs/features/005-private-chat-1to1.md](../features/005-private-chat-1to1.md) — the feature item this research will refine with the explicit `role` field and the invite-action placement
-- [.specify/memory/constitution.md](../../.specify/memory/constitution.md) — Principle I (minimal-dependency bias) and Principle II (orchestrate, don't reimplement), both directly load-bearing above
+- [.specify/memory/constitution.md](../../.specify/memory/constitution.md) — rebus Principle I (minimal-dependency bias); plus the platform-level "orchestrate, don't reimplement" principle (Skipper Constitution v1.4.0 Principle II, inherited as platform context per the rebus constitution preamble — rebus's own Principle II is "Stateless RPC Backend," a different principle). Both directly load-bearing above.
 
 ## Web Citations
 
@@ -266,4 +268,72 @@ already cited (and sourced) in `002`, `003`, `007`, `010`, `011`, `012`.
 
 ## Appendix
 
-None yet.
+### Verification audit — 2026-07-03
+
+Verification pass (deep-research plan, Note 2). This doc declares "No new
+external research was needed," so verification was an internal-consistency
+cross-check of every command-table row and every privilege-convention
+citation against the frozen `reference/` docs it cites. All Decision Log
+entries preserved; two command-table citation errors corrected; one
+re-scope artifact in the constitution citations re-anchored.
+
+**Command table (Part 1) — every row cross-checked against its `Decided in`
+docs:**
+- Rows 1–3 (`app add --image`/`--github`/`--source`), row 6 (`update
+  --image`), row 7 (`upgrade`), row 10 (`site new`), row 11 (`tui new`)
+  all verify cleanly — the cited reference docs (003, 005, 007, 010, 012,
+  017, 022) decide exactly what each row claims.
+- **Row 8 (Wishlist gateway deploy) — citation corrected.** The
+  Wishlist-as-shared-gateway decision is made entirely in `007` (which
+  amended `002`'s earlier rejection); `003` never mentions Wishlist. The
+  row's `Decided in` cell now reads `007` (amends `002`), with the
+  `app add --image` scaffolding it plugs into traced to `003`/`010`.
+- **Row 9 (`kingfish` dispatch) — citation corrected.** It cited `001`,
+  but reference doc `001` is the web-layer-templates doc, not the TUI
+  shell; the shell's interaction-model/dispatch research is `002`. The
+  cell now reads `002`, `007`, `022`.
+- Rows 4 (web-layer `app add --github`) and 5 (`set-interface`) verify,
+  with a noted minor imprecision left as-is: the `--github` coupling is
+  transitive via `003`, and the GCS/Firestore catalog-storage provenance
+  traces to `002` (not `007`, which inherits it). Defensible; not changed.
+
+**Open Questions confirmed still open:**
+- `skipper app remove` / `skipper app list` — grep across all of
+  `specs/research/reference/` confirms neither command is designed or
+  decided anywhere; they remain a real gap, exactly as 013's inline note
+  and Open Question state.
+- Invite-action UI within the TUI-embedded view — still an implementation
+  detail for chat's own design, not resolved here.
+
+**Privilege convention (Part 2) citations verified:**
+- `002` (bbb-le `admin invite`/`admin revoke-key`, rook-server-cli
+  `user register-key` precedent) — present and correctly applied.
+- `011` (auth "enforced per-adapter, not centralized in the shared
+  operation") — present verbatim; 013's role-check correctly extends it.
+
+**Constitution citations re-anchored (re-scope artifact):**
+- This doc was written in `skipper` against the Skipper Constitution, then
+  re-scoped into the rebus repo. Its three references to "Principle II
+  ('orchestrate, don't reimplement')" dangled against the rebus
+  constitution actually at `.specify/memory/constitution.md`, where
+  Principle II is "Stateless RPC Backend" — a different principle. The
+  "orchestrate, don't reimplement" concept is the Skipper Constitution
+  v1.4.0's Principle II (per the rebus constitution's own preamble, which
+  records that derivation). All three references (Background, Part 2
+  prose, Internal References) are re-anchored to identify it correctly as
+  a platform-level principle inherited from skipper, not rebus's own
+  Principle II. The decision it supports (skipper owns no app-level role
+  logic) is unchanged. NOTE: the frozen `reference/` docs (015, 017,
+  023, …) carry the same skipper-Principle-II framing against the rebus
+  constitution path; that is expected drift in frozen snapshots (skipper
+  is source of truth) and is intentionally NOT corrected here.
+
+**Unchanged / out of scope:**
+- Every Decision Log entry stands as-is.
+- The `../features/005-private-chat-1to1.md` link remains dead (the
+  feature item doesn't exist yet — `specs/features/` holds only
+  `TEMPLATE.md`); creating it is F-005, the owner's gate.
+- `rebus`, `bateau`, `kingfish` are referenced by name (no "not yet
+  created" markers in this doc); all three repos now exist (created
+  2026-06-24/25), consistent with the 006 audit.
+- Status stays Complete.

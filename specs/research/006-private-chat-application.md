@@ -70,7 +70,7 @@ answers narrow the actual design space.
 
 | Candidate | Purpose | License | Maturity | Maintenance | Fit | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| **Cloud Firestore** | Conversation/message storage | Proprietary GCP managed service | Mature (GA since 2017) | Actively maintained by Google | High | Already the precedent in this platform's reference repos (`rook-server`'s per-service Firestore namespaces, `sight`'s `NoteService`/`SyncNotes`); Firebase's own documentation explicitly recommends this exact shape — "in a chat application, you might organize users and messages as collections nested within chat room documents" (see Web Citations) |
+| **Cloud Firestore** | Conversation/message storage | Proprietary GCP managed service | Mature (GA since 2017) | Actively maintained by Google | High | Already the precedent in this platform's reference repos (`rook-server`'s per-service Firestore namespaces, `sight`'s `NoteService`/`SyncNotes`); Firebase's own documentation explicitly recommends this exact shape — "you might create collections of users or messages within chat room documents" (see Web Citations) |
 | Cloud SQL / managed Postgres | Alternative storage | Managed GCP service | Mature | Actively maintained | Low | No relational/join need — conversations and their messages are a pure parent/child access pattern; would break from the GCP-managed-document-store precedent already used elsewhere for no benefit |
 | Self-hosted Postgres/SQLite on GKE | Alternative storage | OSS | Mature | Self-maintained | Lowest | Reintroduces operational burden (backups, scaling, patching) this platform has deliberately avoided everywhere else via managed services (constitution Principle V) |
 | Sight's `internal/rpc`-style bounded wire-type package (in-house pattern, not a third-party library) | Shared client-library boundary for the two chat clients | N/A | Proven in a real, working repo (`sight`) | Actively used in that repo | High | Directly matches Q14's requirement (owner's TUI view and `bateau`, the guest's standalone client, must share protocol logic, not duplicate it). Adapted as a **public** package published from `rebus` (not an `internal/` package) since `rebus`, `bateau`, and `kingfish` are three separate repos/modules — see Architecture Patterns. |
@@ -104,11 +104,19 @@ self-hosting reintroduces avoided operational burden.
   pattern already cited in [002](reference/002-hybrid-tui-layer.md): each client
   pulls `messages.where("updatedAt", ">", lastSyncTime)` per conversation
   on manual check (per the confirmed manual-check-only sync model).
-  Firestore supports this directly; combining it with an equality filter
-  on `hiddenFor` (to exclude messages a participant has hidden from their
-  own sync) needs a composite index, which Firestore supports — single-
-  inequality-field limit only restricts *inequality* filters, not
-  equality ones (see Web Citations).
+   Firestore supports this directly. Combining the `updatedAt` range
+   filter with an equality filter on `hiddenFor` (to exclude messages a
+   participant has hidden from their own sync) requires a **composite
+   index** — Firestore's documented rule is that combining equality
+   operators (`==`) with inequality operators (`<`, `<=`, `>`, `!=`)
+   requires one, and Firestore creates it on request. (Firestore now
+   supports multi-field inequality queries generally; the earlier
+   "single-inequality-field limit only restricts inequality filters, not
+   equality ones" framing this doc originally cited is no longer current
+   Firestore behavior and has been removed from the page — see Web
+   Citations and the 2026-07-03 verification audit. The design decision —
+   `updatedAt > … AND hiddenFor == …` served by a composite index — is
+   unchanged.)
 - **Clients never access Firestore directly — all access is mediated by
   the backend RPC API.** This is a direct consequence of the already-
   decided stateless RPC pattern: Firestore security rules are not the
@@ -406,8 +414,8 @@ by sibling docs:
   the feature item this research will refine with concrete specifics
 - [014-guest-chat-client-scope-and-auth-ux.md](014-guest-chat-client-scope-and-auth-ux.md) —
   `bateau`'s full command/distribution/auth design
-- `github.com/monamaret/rebus` (not yet created) — the chat backend's own repo, named in this doc's Decision Log
-- `github.com/monamaret/bateau` (not yet created) — the guest client's own repo, named in this doc's Decision Log
+- `github.com/monamaret/rebus` (created 2026-06-24) — the chat backend's own repo, named in this doc's Decision Log
+- `github.com/monamaret/bateau` (created 2026-06-24) — the guest client's own repo, named in this doc's Decision Log
 - [.specify/memory/constitution.md](../../.specify/memory/constitution.md) —
   Principle VI (secure-by-default), Principle VIII (repo separation — this
   decision's first concrete instance), and Security & Operational
@@ -417,11 +425,14 @@ by sibling docs:
 
 | Title | URL | Accessed | Relevance |
 | --- | --- | --- | --- |
-| Cloud Firestore — Structure Data | https://firebase.google.com/docs/firestore/manage-data/structure-data | 2026-06-24 | Confirms the subcollection pattern this doc's schema uses; explicitly names "a chat application... organize users and messages as collections nested within chat room documents" as the recommended shape for this exact use case. |
-| Cloud Firestore — Query Data | https://firebase.google.com/docs/firestore/query-data/queries | 2026-06-24 | Confirms greater-than timestamp queries for incremental sync, and the single-inequality-field constraint (equality filters, like the `hiddenFor` filter this doc's sync query needs, don't count against that limit). |
-| `github.com/monamaret/sight` — `.specify/memory/constitution.md` (Additional Constraints) | https://github.com/monamaret/sight | 2026-06-24 (fetched earlier in this research thread) | Source of the "`sight-cli` imports only types from `internal/rpc`... never from `internal/app`, `internal/store`, or `internal/service`" boundary rule this doc's shared-client-library decision directly reuses. |
-| `github.com/monamaret/sight` — `internal/domain/note_service.go` | https://github.com/monamaret/sight | 2026-06-24 (fetched earlier in this research thread) | Source of the `SyncNotes(ctx, customerID, since time.Time)` incremental-sync signature this doc's `updatedAt`-query pattern extends. |
-| `github.com/monamaret/rook-reference` — `specs/architecture/component-overview.md` | https://github.com/monamaret/rook-reference | 2026-06-24 (fetched earlier in this research thread) | Source of the local flat-file cache (`stash/<space-id>/`) and SSH-key-signs-auth-challenge-locally patterns this doc's client-cache and auth-flow recommendations reuse. |
+| Cloud Firestore — Structure Data | https://firebase.google.com/docs/firestore/manage-data/structure-data | 2026-07-03 | Confirms the subcollection pattern this doc's schema uses; explicitly names "you might create collections of users or messages within chat room documents" as the recommended shape for this exact use case, and states subcollection data does not count against the parent document's 1 MiB size. |
+| Cloud Firestore — Query Data | https://firebase.google.com/docs/firestore/query-data/queries | 2026-07-03 | Confirms greater-than (`>`) range-filter queries for incremental sync, and the rule that combining equality operators (`==`) with inequality operators (`<`, `<=`, `>`, `!=`) — as this doc's `updatedAt > … AND hiddenFor == …` sync query does — requires a composite index. Note: the page no longer documents a single-inequality-field limit; Firestore now supports multi-field inequality queries, so the earlier "equality doesn't count against the inequality limit" framing is obsolete (see 2026-07-03 audit). |
+| Cloud Firestore — Usage and limits | https://firebase.google.com/docs/firestore/quotas | 2026-07-03 | Source of the 1 MiB (1,048,576 bytes) maximum document size that motivates storing messages as subcollection documents rather than embedding them in the parent. |
+| Cloud Firestore — Manage indexes | https://firebase.google.com/docs/firestore/query-data/indexing | 2026-07-03 | The composite-index mechanism (manual composite indexes) the `updatedAt`+`hiddenFor` sync query depends on; confirms a range clause in a compound query errors without a matching index. |
+| Cloud Firestore — Manage data retention with time-to-live policies | https://firebase.google.com/docs/firestore/ttl | 2026-07-03 | Confirms TTL/expiry is an optional, opt-in policy (no automatic expiry by default), corroborating the indefinite-retention decision in this doc's Decision Log. |
+| `github.com/monamaret/sight` — `.specify/memory/constitution.md` (Additional Constraints) | https://github.com/monamaret/sight | 2026-07-03 (re-verified against current source) | Source of the "`sight-cli` imports only types from `internal/rpc`... never from `internal/app`, `internal/store`, or `internal/service`" boundary rule this doc's shared-client-library decision directly reuses — the quoted string is present verbatim in the repo's constitution. |
+| `github.com/monamaret/sight` — `internal/domain/note_service.go` | https://github.com/monamaret/sight | 2026-07-03 (re-verified against current source) | Source of the `SyncNotes(ctx, customerID, since time.Time)` incremental-sync signature this doc's `updatedAt`-query pattern extends — the signature and its "modified at or after `since`" doc comment are present verbatim. |
+| `github.com/monamaret/rook-reference` — `specs/architecture/component-overview.md` | https://github.com/monamaret/rook-reference | 2026-07-03 (re-verified against current source) | Source of the local flat-file cache (`stash/<space-id>/`) and SSH-key-signs-auth-challenge-locally patterns this doc's client-cache and auth-flow recommendations reuse — both are present verbatim in the component overview. |
 
 ## Appendix
 
@@ -482,4 +493,59 @@ Scope with concrete specifics.
 **G. Compliance / non-functional** — ✅ resolved, see Decision Log
 
 15. ~~External compliance constraint?~~ — **None** — purely a private,
-    personal security posture.
+   personal security posture.
+
+### Verification audit — 2026-07-03
+
+Verification pass (deep-research plan, Note 1). Every citation re-checked
+against current sources on 2026-07-03; every Decision Log entry preserved;
+one stale rationale corrected in place.
+
+- **Firebase `structure-data` doc** — URL live; `Accessed` refreshed to
+  2026-07-03. Corrected the embedded quote to the page's current wording
+  ("you might create collections of users or messages within chat room
+  documents"); the earlier "organize users and messages... nested"
+  paraphrase was close but not verbatim. The same page also supplies the
+  parent-document-size-independence guarantee the subcollection choice
+  relies on.
+- **Firebase `queries` doc** — URL live; `Accessed` refreshed to
+  2026-07-03. The page **no longer documents a "single-inequality-field"
+  limit** — Firestore now supports multi-field range/inequality queries.
+  The design decision this section cited it for (combining
+  `updatedAt > …` with `hiddenFor == …` via a composite index) is
+  **unchanged and still correct**; only the *rationale* was stale, so
+  Architecture Patterns and the Web Citations relevance text are
+  re-anchored to the page's actual rule: "you must create a composite
+  index to combine equality operators with the inequality operators." No
+  Decision Log entry was affected — the storage decision names the schema
+  and the `updatedAt`-incremental sync, not the inequality framing.
+- **Added citations** — Firestore `quotas` (1 MiB / 1,048,576-byte
+  document-size cap), `indexing` (composite-index mechanism), and `ttl`
+  (retention is opt-in, corroborating the indefinite-retention decision)
+  now trace claims that were previously bare assertions.
+- **Reference-repo citations verified, not assumed** — `sight`'s
+  `.specify/memory/constitution.md` (the `sight-cli` → `internal/rpc`-only
+  import rule) and `internal/domain/note_service.go` (the
+  `SyncNotes(ctx, customerID, since time.Time)` signature), and
+  `rook-reference`'s `specs/architecture/component-overview.md` (the
+  `stash/<space-id>/` local-cache and SSH-key-signs-challenge patterns)
+  were re-read against current source on 2026-07-03; all three quoted
+  strings are present verbatim. All three repos exist and are maintained
+  (`sight` private, `rook-reference` public).
+- **Stale nouns corrected** — `rebus` (`github.com/monamaret/rebus`) and
+  `bateau` (`github.com/monamaret/bateau`) were marked "(not yet created)"
+  in Internal References and several Decision Log entries; both repos now
+  exist (created 2026-06-24), as does `kingfish`. Internal References
+  corrected to present tense. Decision Log entries left intact as history
+  per the rebus-core edit rules ("decisions preserved; only stale
+  nouns/framing corrected"); the creation-date correction is recorded
+  here rather than by rewriting the dated entries.
+- **Unchanged** — every Decision Log entry stands as-is. The
+  confidentiality model, indefinite retention, asymmetric deletion,
+  admin-only edit, async-only delivery, multi-conversation scope,
+  single-device identity, manual-check sync, and shared-client-package
+  decisions all remain valid and are not reopened. Status stays Complete.
+- **Out of scope for this pass** — the feature item
+  `specs/features/005-private-chat-1to1.md` this doc targets still does
+  not exist on disk (`specs/features/` holds only `TEMPLATE.md`);
+  creating it is **F-005**, the owner's gate, not a citation fix.
